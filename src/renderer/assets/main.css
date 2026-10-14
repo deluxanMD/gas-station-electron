@@ -26,6 +26,7 @@ code {
   font-size: 85%;
 }
 
+#root,
 #app {
   display: flex;
   align-items: center;
@@ -74,6 +75,14 @@ code {
 
 .ts {
   background: -webkit-linear-gradient(315deg, #3178c6 45%, #f0dc4e);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+.react {
+  background: -webkit-linear-gradient(315deg, #00d8ff 45%, #007acc);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

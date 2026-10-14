@@ -1,8 +1,10 @@
 import { defineConfig } from 'eslint/config';
 import tseslint from '@electron-toolkit/eslint-config-ts';
-import eslintConfigPrettier from '@electron-toolkit/eslint-config-prettier';
+import eslintConfigPrettier from 'eslint-config-prettier';
 import pluginPromise from 'eslint-plugin-promise';
 import pluginUnicorn from 'eslint-plugin-unicorn';
+import pluginReactHooks from 'eslint-plugin-react-hooks';
+import pluginReactRefresh from 'eslint-plugin-react-refresh';
 
 export default defineConfig(
   // ── Ignores ──────────────────────────────────────────────
@@ -13,6 +15,16 @@ export default defineConfig(
 
   // ── Plugin: eslint-plugin-promise ───────────────────────
   pluginPromise.configs['flat/recommended'],
+
+  // ── React Plugins (for renderer / JSX files) ────────────
+  {
+    files: ['src/renderer/**/*.{ts,tsx}'],
+    ...pluginReactHooks.configs.flat.recommended,
+  },
+  {
+    files: ['src/renderer/**/*.{ts,tsx}'],
+    ...pluginReactRefresh.configs.vite,
+  },
 
   // ── Plugin: eslint-plugin-unicorn (curated) ─────────────
   {
