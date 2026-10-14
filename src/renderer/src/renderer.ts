@@ -5,7 +5,7 @@ function init(): void {
 }
 
 function doAThing(): void {
-  const versions = window.electron.process.versions;
+  const { versions } = window.electron.process;
   replaceText('.electron-version', `Electron v${versions.electron}`);
   replaceText('.chrome-version', `Chromium v${versions.chrome}`);
   replaceText('.node-version', `Node v${versions.node}`);
