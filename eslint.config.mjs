@@ -62,7 +62,7 @@ export default defineConfig(
       'unicorn/prefer-string-trim-start-end': 'error',
       'unicorn/prefer-switch': 'error',
       'unicorn/prefer-ternary': 'error',
-      'unicorn/prefer-top-level-await': 'error',
+      'unicorn/prefer-top-level-await': 'off', // Disabled for Electron CJS bundle compatibility
       'unicorn/prefer-type-error': 'error',
       'unicorn/prefer-node-protocol': 'error',
       'unicorn/prefer-structured-clone': 'error',
@@ -82,6 +82,9 @@ export default defineConfig(
   // ── Custom: Modern best-practice rules ──────────────────
   {
     rules: {
+      // --- Promise best practices ---
+      'promise/always-return': ['error', { ignoreLastCallback: true }],
+
       // --- General best practices ---
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'warn',
