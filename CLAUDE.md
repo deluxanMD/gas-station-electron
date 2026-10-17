@@ -76,13 +76,30 @@ Keep a feature's internals private; import from its `index.ts` only.
 - Prettier and ESLint are the source of truth (`.prettierrc`, `eslint.config.mjs`); don't hand-format or debate style.
 - Named exports; default export only where a tool requires it.
 - File names: `PascalCase.tsx` for components, `camelCase.ts` for everything else.
-- Comments explain *why*, not what. Delete dead code instead of commenting it out.
+- Comments explain _why_, not what. Delete dead code instead of commenting it out.
 - Handle errors explicitly at boundaries (IPC, file I/O, parsing); surface user-friendly messages, log details.
 
 ## Testing
 
 - Add Vitest + React Testing Library when logic grows; test behavior through the UI, not implementation details.
 - Unit test all money, volume and date calculations — these are the highest-risk code.
+
+## Git hooks and commits
+
+Husky runs these automatically; never bypass with `--no-verify`. Fix the cause instead.
+
+- `pre-commit` — `lint-staged` (ESLint `--fix` + Prettier on staged files), then `npm run typecheck`.
+- `commit-msg` — commitlint enforces Conventional Commits.
+- `pre-push` — `npm run typecheck` and `npm run lint`.
+
+Commit format: `type(scope): subject`
+
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Scope optional, lowercase, names the feature (`shifts`, `stock`, `cash`, `main`, `preload`).
+- Subject: imperative mood, lowercase start, no trailing period, header ≤ 72 chars.
+- Body (optional, blank line after header): explain why, wrap at 100 chars.
+- Breaking changes: `!` after type/scope and a `BREAKING CHANGE:` footer.
+- One logical change per commit.
 
 ## Working agreements for Claude
 
