@@ -56,7 +56,7 @@ Keep a feature's internals private; import from its `index.ts` only.
 - Lift state only as high as needed. Prefer local state, then context, then a store (e.g. Zustand) if it's truly shared.
 - Server/async data: use a data-fetching layer (TanStack Query) rather than hand-rolled `useEffect` fetching, once IPC calls multiply.
 - Stable `key`s from data ids, never array index for dynamic lists.
-- Forms: controlled inputs with schema validation (Zod); validate the same schema again in main before persisting.
+- Forms: React Hook Form with `zodResolver` and a Zod schema per form. Infer the form type with `z.infer`. Keep schemas next to the feature and reuse the same schema in main to validate before persisting.
 - Accessibility: semantic elements, labels on every input, keyboard-operable controls, visible focus.
 
 ## Styling
