@@ -63,6 +63,10 @@ Keep a feature's internals private; import from its `index.ts` only.
 
 - Tailwind CSS v4 (via `@tailwindcss/vite`) plus shadcn/ui (Radix, `new-york` style, lucide icons). Theme tokens are CSS variables in `src/renderer/assets/main.css`; change the theme there, not per component.
 - Style with Tailwind utilities and merge conditional classes with `cn()` from `@/lib/utils`. No arbitrary values when a token exists. No inline styles except for dynamic values.
+- Theme: light and dark share one token set in `main.css` (`:root` and `.dark`). Dark mode is a `.dark` class on `<html>`, managed by `ThemeProvider` (`light | dark | system`, persisted in localStorage); read/change it with `useTheme()` and `ThemeToggle`.
+- Always use semantic colour classes (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). Never hard-code hex/`slate-500` colours; they break dark mode.
+- Status meaning has its own tokens: `success`, `warning`, `info`, `destructive` (each with `-foreground`). Use them only for meaning (e.g. low stock = warning, cash variance = destructive), never decoration.
+- `sidebar-*` tokens are for the app navigation; `chart-1..5` for charts. Add new tokens in both `:root` and `.dark` and register them in `@theme inline`.
 - Import with the `@/` alias (maps to `src/renderer/src`).
 
 ## UI components (shadcn/ui)
