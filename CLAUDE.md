@@ -94,8 +94,22 @@ Keep a feature's internals private; import from its `index.ts` only.
 
 ## Testing
 
-- Add Vitest + React Testing Library when logic grows; test behavior through the UI, not implementation details.
-- Unit test all money, volume and date calculations — these are the highest-risk code.
+Three layers; pick the cheapest one that can catch the bug.
+
+| Layer     | Tool                                               | Files                         | Command                  |
+| --------- | -------------------------------------------------- | ----------------------------- | ------------------------ |
+| Unit      | Vitest + React Testing Library (jsdom)             | `src/**/*.test.ts(x)`         | `npm run test:unit`      |
+| Component | Vitest Browser Mode (real Chromium via Playwright) | `src/**/*.component.test.tsx` | `npm run test:component` |
+| E2E       | Playwright driving the built Electron app          | `e2e/*.spec.ts`               | `npm run test:e2e`       |
+
+- Tests live next to the code they cover (`Foo.tsx` / `Foo.test.tsx`); E2E lives in `e2e/`.
+- Unit: pure logic (money, volume, date maths, schemas, hooks) and simple component behaviour. Highest priority is the money/volume/date calculations.
+- Component: anything that needs real layout, focus, keyboard or CSS (dialogs, tables, forms). Use `vitest-browser-react` and role/label locators.
+- E2E: a few critical user journeys through the real app including main/preload/IPC (e.g. open shift, record dip reading, close shift). `npm run test:e2e` builds first. Keep these few and stable.
+- Query by role/label/text, never by class or implementation detail. Prefer `userEvent` / locator clicks over firing events.
+- Don't mock what you own; mock only the IPC boundary (the preload API) in unit/component tests.
+- `pre-push` runs typecheck, lint and unit tests. Run `npm test` (unit + component) before finishing a task; run `test:e2e` when touching main, preload or critical flows.
+- Setup files: `src/renderer/src/test/setup.unit.ts` and `setup.component.ts`. Config: `vitest.config.mts`, `playwright.config.ts`.
 
 ## Git hooks and commits
 
@@ -103,7 +117,7 @@ Husky runs these automatically; never bypass with `--no-verify`. Fix the cause i
 
 - `pre-commit` — `lint-staged` (ESLint `--fix` + Prettier on staged files), then `npm run typecheck`.
 - `commit-msg` — commitlint enforces Conventional Commits.
-- `pre-push` — `npm run typecheck` and `npm run lint`.
+- `pre-push` — `npm run typecheck`, `npm run lint` and `npm run test:unit`.
 
 Commit format: `type(scope): subject`
 

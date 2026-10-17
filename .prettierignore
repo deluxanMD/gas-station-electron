@@ -5,3 +5,6 @@ LICENSE.md
 tsconfig.json
 tsconfig.*.json
 src/renderer/src/components/ui
+test-results
+playwright-report
+coverage
