@@ -7,3 +7,8 @@ out
 test-results
 playwright-report
 coverage
+
+# Env files (keep .env.example)
+.env
+.env.*
+!.env.example
