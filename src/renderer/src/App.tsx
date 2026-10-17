@@ -1,11 +1,14 @@
 import type { JSX } from 'react';
-import { LoginForm } from '@/features/auth/login';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LoginScreen } from '@/features/auth/login-screen';
 
 export function App(): JSX.Element {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6">
-      <h1 className="text-2xl font-semibold">Gas Station Portal</h1>
-      <LoginForm />
+    <main className="relative min-h-screen bg-muted/40">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      <LoginScreen />
     </main>
   );
 }
