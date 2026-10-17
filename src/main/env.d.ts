@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly MAIN_VITE_APP_ENV: 'development' | 'production';
   readonly MAIN_VITE_API_BASE_URL: string;
+  readonly MAIN_VITE_DATABASE_URL: string;
 }
 
 interface ImportMeta {
