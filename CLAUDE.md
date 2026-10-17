@@ -128,6 +128,15 @@ Commit format: `type(scope): subject`
 - Breaking changes: `!` after type/scope and a `BREAKING CHANGE:` footer.
 - One logical change per commit.
 
+## CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on pull requests into `dev` and `main`. PRs into `main` must come from `dev` (enforced by the `Branch policy` job); PRs into `dev` can come from any branch.
+
+Parallel jobs: typecheck, lint, prettier (`npm run format:check`), unit tests, component tests, E2E tests (under `xvfb`). All must pass to merge; mark them as required checks in branch protection for `dev` and `main`.
+
+- CI overrides the Electron mirrors from `.npmrc` with the official GitHub downloads.
+- E2E runs with a fresh temp `--user-data-dir` (and `--no-sandbox` when `CI` is set); keep new E2E tests independent of persisted state.
+
 ## Working agreements for Claude
 
 - Match existing patterns before introducing new ones; ask before adding dependencies or restructuring.

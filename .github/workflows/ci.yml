@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  # Override the mirrors in .npmrc (used for local installs) with the official
+  # GitHub-hosted downloads, which are reliable from GitHub runners.
+  npm_config_electron_mirror: https://github.com/electron/electron/releases/download/
+  npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+
+jobs:
+  # PRs into main are only allowed from dev. PRs into dev may come from any branch.
+  branch-policy:
+    name: Branch policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only dev may be merged into main
+        if: github.base_ref == 'main' && github.head_ref != 'dev'
+        run: |
+          echo "::error::Pull requests into main must come from the dev branch (got '${{ github.head_ref }}')."
+          exit 1
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  prettier:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+
+  unit-test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+  component-test:
+    name: Component tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:component
+
+  e2e-test:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Electron system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libgtk-3-0 libgbm1 libasound2t64
+      - name: Run E2E tests (virtual display)
+        run: xvfb-run --auto-servernum npm run test:e2e
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          if-no-files-found: ignore

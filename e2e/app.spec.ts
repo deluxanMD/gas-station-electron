@@ -1,3 +1,6 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { _electron as electron, expect, test } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
 
@@ -5,7 +8,16 @@ let app: ElectronApplication;
 let page: Page;
 
 test.beforeAll(async () => {
-  app = await electron.launch({ args: ['.'] });
+  // Fresh profile per run so persisted state (e.g. theme) never leaks between runs.
+  const userDataDir = mkdtempSync(join(tmpdir(), 'gsp-e2e-'));
+  app = await electron.launch({
+    args: [
+      '.',
+      `--user-data-dir=${userDataDir}`,
+      // CI runners can't use Chromium's SUID sandbox.
+      ...(process.env.CI ? ['--no-sandbox'] : []),
+    ],
+  });
   page = await app.firstWindow();
 });
 
