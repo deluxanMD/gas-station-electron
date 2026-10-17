@@ -61,8 +61,17 @@ Keep a feature's internals private; import from its `index.ts` only.
 
 ## Styling
 
-- Plain CSS with CSS variables (design tokens in `assets/base.css`) or CSS Modules. Don't introduce a styling library without asking.
-- No inline styles except for dynamic values.
+- Tailwind CSS v4 (via `@tailwindcss/vite`) plus shadcn/ui (Radix, `new-york` style, lucide icons). Theme tokens are CSS variables in `src/renderer/assets/main.css`; change the theme there, not per component.
+- Style with Tailwind utilities and merge conditional classes with `cn()` from `@/lib/utils`. No arbitrary values when a token exists. No inline styles except for dynamic values.
+- Import with the `@/` alias (maps to `src/renderer/src`).
+
+## UI components (shadcn/ui)
+
+- Add components with `npx shadcn@latest add <name>`. The CLI can't detect this Electron setup and may write to a literal `@/` folder; if so, move the files into `src/renderer/src/components/ui/`.
+- `components/ui/` is generated code: excluded from ESLint and Prettier, so don't hand-edit it. Wrap or compose in `components/` or the feature folder instead; if a real change is needed, do it deliberately and say so.
+- Forms use the shadcn `Form` primitives with React Hook Form + Zod.
+- Tables use TanStack Table (`@tanstack/react-table`) rendered with the shadcn `Table` components. Define column definitions per feature, keep them typed, and keep row/sorting/filtering state in the table, not duplicated in React state.
+- Use lucide-react for icons.
 
 ## Domain rules
 
