@@ -23,13 +23,31 @@ Organize renderer code by feature, not by file type:
 
 ```
 src/renderer/src/
-  features/<feature>/   # components, hooks, api, types for one domain (shifts, stock, cash)
-  components/           # shared, presentational UI only
-  hooks/                # shared hooks
-  lib/                  # pure utilities
+  features/<feature>/<unit>/   # one screen or form per unit, e.g. features/auth/login/
+    index.tsx                  # the component (named export)
+    types.ts                   # props, hook and form types
+    schema.ts                  # Zod schema
+    hooks.ts                   # custom hooks
+  components/                  # shared UI
+    <name>/                    # shared component (e.g. text-field/)
+      index.tsx                # the component (named export)
+      types.ts                 # optional
+      hooks.ts                 # optional
+    ui/                        # generated shadcn/ui
+  hooks/                       # shared hooks
+  lib/                         # pure utilities
 ```
 
-Keep a feature's internals private; import from its `index.ts` only.
+- Folders are kebab-case. A unit's component lives in `index.tsx` and is imported by folder path (`@/features/auth/login`, `@/components/text-field`). Don't deep-import its other files.
+- No feature-level barrel `index.ts`; import the unit directly.
+- Feature units and shared component folders use the same file names: `index.tsx`, `types.ts`, `hooks.ts`, plus `schema.ts` where there's a form. Only add the files a folder needs.
+
+## Environment
+
+- electron-vite loads `.env.development` (`npm run dev`) and `.env.production` (`npm run build*`). Only `MAIN_VITE_*`, `PRELOAD_VITE_*` and `RENDERER_VITE_*` variables are exposed, and they are inlined into the bundle.
+- All `.env*` files are gitignored except `.env.example`. Keep it in sync with the variable names (placeholders only, never real values).
+- Type new variables in `src/main/env.d.ts` or `src/renderer/src/env.d.ts`.
+- Database (Postgres) credentials are `MAIN_VITE_` only; never use a `RENDERER_VITE_` prefix for secrets. Production variables are public in the packaged app, so no secrets there either.
 
 ## Electron security (non-negotiable)
 
@@ -42,10 +60,11 @@ Keep a feature's internals private; import from its `index.ts` only.
 ## TypeScript
 
 - `strict` stays on. No `any`; use `unknown` and narrow. No `@ts-ignore` (use `@ts-expect-error` with a reason).
-- Prefer `type` for unions/props, `interface` for extensible object shapes.
+- ESLint enforces `interface` for object shapes (`consistent-type-definitions`) and explicit return types on functions; use `type` for unions and intersections.
 - Model states with discriminated unions rather than boolean flags.
 - Share IPC channel names and payload types from one place so main, preload and renderer can't drift.
 - Use `import type` for type-only imports.
+- Put a unit's types in its `types.ts`, not inline in the component or hook.
 
 ## React
 
@@ -56,7 +75,8 @@ Keep a feature's internals private; import from its `index.ts` only.
 - Lift state only as high as needed. Prefer local state, then context, then a store (e.g. Zustand) if it's truly shared.
 - Server/async data: use a data-fetching layer (TanStack Query) rather than hand-rolled `useEffect` fetching, once IPC calls multiply.
 - Stable `key`s from data ids, never array index for dynamic lists.
-- Forms: React Hook Form with `zodResolver` and a Zod schema per form. Infer the form type with `z.infer`. Keep schemas next to the feature and reuse the same schema in main to validate before persisting.
+- Forms: one unit per form. `schema.ts` holds the Zod schema; `types.ts` infers the values type with `z.infer`; `hooks.ts` has a `use<Name>Form` hook that wires `useForm` + `zodResolver` and returns `{ form, handleSubmit }`; `index.tsx` calls the hook, wraps the markup in the shadcn `Form`, and renders fields. Reuse the same schema in main to validate before persisting.
+- Form fields: use the shared `TextField` (`@/components/text-field`), a react-hook-form `Controller` wrapper that takes `name`, `label`, optional `description` and any input props. Add similar shared field components rather than wiring `FormField` by hand in each form.
 - Accessibility: semantic elements, labels on every input, keyboard-operable controls, visible focus.
 
 ## Styling
@@ -88,7 +108,7 @@ Keep a feature's internals private; import from its `index.ts` only.
 
 - Prettier and ESLint are the source of truth (`.prettierrc`, `eslint.config.mjs`); don't hand-format or debate style.
 - Named exports; default export only where a tool requires it.
-- File names: `PascalCase.tsx` for components, `camelCase.ts` for everything else.
+- File names: component files are `PascalCase.tsx`, except a unit's main component, which is `index.tsx`. Everything else is `camelCase.ts`, or the fixed unit names `types.ts`, `schema.ts`, `hooks.ts`.
 - Comments explain _why_, not what. Delete dead code instead of commenting it out.
 - Handle errors explicitly at boundaries (IPC, file I/O, parsing); surface user-friendly messages, log details.
 
