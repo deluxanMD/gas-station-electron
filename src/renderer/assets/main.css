@@ -1,10 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
-
 /*
- * Theme tokens. Single source of truth for light and dark.
+ * Theme tokens (light theme only).
  * Neutrals carry a faint blue tint (hue 255) to match the brand colour;
  * the primary is a calm, trustworthy blue suited to a data-heavy internal tool.
  * Status colours (success / warning / info / destructive) are reserved for meaning.
@@ -62,54 +60,6 @@
   --sidebar-accent-foreground: oklch(0.97 0.005 255);
   --sidebar-border: oklch(0.32 0.04 258);
   --sidebar-ring: oklch(0.62 0.15 250);
-}
-
-.dark {
-  color-scheme: dark;
-
-  --background: oklch(0.17 0.02 258);
-  --foreground: oklch(0.95 0.008 255);
-  --card: oklch(0.21 0.025 258);
-  --card-foreground: oklch(0.95 0.008 255);
-  --popover: oklch(0.23 0.027 258);
-  --popover-foreground: oklch(0.95 0.008 255);
-
-  --primary: oklch(0.7 0.14 250);
-  --primary-foreground: oklch(0.18 0.03 258);
-  --secondary: oklch(0.27 0.03 258);
-  --secondary-foreground: oklch(0.93 0.01 255);
-  --accent: oklch(0.29 0.045 258);
-  --accent-foreground: oklch(0.93 0.03 255);
-
-  --muted: oklch(0.25 0.025 258);
-  --muted-foreground: oklch(0.7 0.02 255);
-  --border: oklch(1 0 0 / 11%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.65 0.15 250);
-
-  --destructive: oklch(0.68 0.19 25);
-  --destructive-foreground: oklch(0.17 0.02 258);
-  --success: oklch(0.7 0.15 155);
-  --success-foreground: oklch(0.17 0.02 258);
-  --warning: oklch(0.8 0.15 80);
-  --warning-foreground: oklch(0.2 0.04 75);
-  --info: oklch(0.72 0.12 230);
-  --info-foreground: oklch(0.17 0.02 258);
-
-  --chart-1: oklch(0.7 0.14 250);
-  --chart-2: oklch(0.74 0.12 195);
-  --chart-3: oklch(0.8 0.14 80);
-  --chart-4: oklch(0.7 0.16 310);
-  --chart-5: oklch(0.72 0.15 25);
-
-  --sidebar: oklch(0.14 0.025 258);
-  --sidebar-foreground: oklch(0.93 0.01 255);
-  --sidebar-primary: oklch(0.7 0.14 250);
-  --sidebar-primary-foreground: oklch(0.16 0.03 258);
-  --sidebar-accent: oklch(0.23 0.04 258);
-  --sidebar-accent-foreground: oklch(0.97 0.005 255);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.65 0.15 250);
 }
 
 @theme inline {
