@@ -27,9 +27,8 @@ test.afterAll(async () => {
 
 test('opens the portal window', async () => {
   await expect(page).toHaveTitle('Gas Station Portal');
-  await expect(
-    page.getByRole('heading', { name: 'Gas Station Portal' }),
-  ).toBeVisible();
+  // The login screen's title is a shadcn CardTitle (a div, not a heading).
+  await expect(page.getByText('Gas Station Portal')).toBeVisible();
 });
 
 test('theme toggle switches the app to dark mode', async () => {
