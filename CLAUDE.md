@@ -83,7 +83,7 @@ src/renderer/src/
 
 - Tailwind CSS v4 (via `@tailwindcss/vite`) plus shadcn/ui (Radix, `new-york` style, lucide icons). Theme tokens are CSS variables in `src/renderer/assets/main.css`; change the theme there, not per component.
 - Style with Tailwind utilities and merge conditional classes with `cn()` from `@/lib/utils`. No arbitrary values when a token exists. No inline styles except for dynamic values.
-- Theme: light only (no dark mode, no theme toggle). Tokens live in `:root` in `main.css`.
+- Theme: light only (no dark mode, no toggle), inspired by oracle.com: warm grey page, white rounded cards, near-black ink, red primary, deep teal for banners/navigation. Tokens live in `:root` in `main.css`.
 - Always use semantic colour classes (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). Never hard-code hex/`slate-500` colours.
 - Status meaning has its own tokens: `success`, `warning`, `info`, `destructive` (each with `-foreground`). Use them only for meaning (e.g. low stock = warning, cash variance = destructive), never decoration.
 - `sidebar-*` tokens are for the app navigation; `chart-1..5` for charts. Add new tokens in `:root` and register them in `@theme inline`.
