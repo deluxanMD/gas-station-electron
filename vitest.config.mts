@@ -8,7 +8,7 @@ const alias = { '@': resolve('src/renderer/src') };
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias },
+  resolve: { alias, dedupe: ['react', 'react-dom'] },
   test: {
     projects: [
       {

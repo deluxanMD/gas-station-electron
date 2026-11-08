@@ -23,13 +23,33 @@ Organize renderer code by feature, not by file type:
 
 ```
 src/renderer/src/
-  features/<feature>/   # components, hooks, api, types for one domain (shifts, stock, cash)
-  components/           # shared, presentational UI only
-  hooks/                # shared hooks
-  lib/                  # pure utilities
+  features/<feature>/<unit>/   # one screen or form per unit, e.g. features/auth/login/
+    index.tsx                  # the component (named export)
+    types.ts                   # props, hook and form types
+    constants.ts               # constants used by this unit
+    schema.ts                  # Zod schema
+    hooks.ts                   # custom hooks
+  components/                  # shared UI
+    <name>/                    # shared component (e.g. text-field/)
+      index.tsx                # the component (named export)
+      types.ts                 # optional
+      constants.ts             # optional
+      hooks.ts                 # optional
+    ui/                        # generated shadcn/ui
+  hooks/                       # shared hooks
+  lib/                         # pure utilities
 ```
 
-Keep a feature's internals private; import from its `index.ts` only.
+- Folders are kebab-case. A unit's component lives in `index.tsx` and is imported by folder path (`@/features/auth/login`, `@/components/text-field`). Don't deep-import its other files.
+- No feature-level barrel `index.ts`; import the unit directly.
+- Feature units and shared component folders use the same file names: `index.tsx`, `types.ts`, `constants.ts`, `hooks.ts`, plus `schema.ts` where there's a form. Only add the files a folder needs.
+
+## Environment
+
+- electron-vite loads `.env.development` (`npm run dev`) and `.env.production` (`npm run build*`). Only `MAIN_VITE_*`, `PRELOAD_VITE_*` and `RENDERER_VITE_*` variables are exposed, and they are inlined into the bundle.
+- All `.env*` files are gitignored except `.env.example`. Keep it in sync with the variable names (placeholders only, never real values).
+- Type new variables in `src/main/env.d.ts` or `src/renderer/src/env.d.ts`.
+- Database (Postgres) credentials are `MAIN_VITE_` only; never use a `RENDERER_VITE_` prefix for secrets. Production variables are public in the packaged app, so no secrets there either.
 
 ## Electron security (non-negotiable)
 
@@ -42,10 +62,11 @@ Keep a feature's internals private; import from its `index.ts` only.
 ## TypeScript
 
 - `strict` stays on. No `any`; use `unknown` and narrow. No `@ts-ignore` (use `@ts-expect-error` with a reason).
-- Prefer `type` for unions/props, `interface` for extensible object shapes.
+- ESLint enforces `interface` for object shapes (`consistent-type-definitions`) and explicit return types on functions; use `type` for unions and intersections.
 - Model states with discriminated unions rather than boolean flags.
 - Share IPC channel names and payload types from one place so main, preload and renderer can't drift.
 - Use `import type` for type-only imports.
+- Put a unit's types in its `types.ts` and its constants in its `constants.ts`, not inline in the component or hook. Every component has its own pair; don't share one across components.
 
 ## React
 
@@ -55,18 +76,20 @@ Keep a feature's internals private; import from its `index.ts` only.
 - Don't add `useMemo`/`useCallback` by default; add only for measured problems or stable-identity needs. (If React Compiler is adopted, remove existing manual memoization.)
 - Lift state only as high as needed. Prefer local state, then context, then a store (e.g. Zustand) if it's truly shared.
 - Server/async data: use a data-fetching layer (TanStack Query) rather than hand-rolled `useEffect` fetching, once IPC calls multiply.
+- Role-based access: never compare roles in components. Add the module/action to `ACCESS` in `features/auth/permissions.ts` (roles come from the `UserRole` enum) and check it with `useCan(module, action)` or `<Can>`. The UI only hides things; the API must enforce the same rule.
 - Stable `key`s from data ids, never array index for dynamic lists.
-- Forms: React Hook Form with `zodResolver` and a Zod schema per form. Infer the form type with `z.infer`. Keep schemas next to the feature and reuse the same schema in main to validate before persisting.
+- Forms: one unit per form. `schema.ts` holds the Zod schema; `types.ts` infers the values type with `z.infer`; `hooks.ts` has a `use<Name>Form` hook that wires `useForm` + `zodResolver` and returns `{ form, handleSubmit }`; `index.tsx` calls the hook, wraps the markup in the shadcn `Form`, and renders fields. Reuse the same schema in main to validate before persisting.
+- Form fields: use the shared `TextField` (`@/components/text-field`), a react-hook-form `Controller` wrapper that takes `name`, `label`, optional `description` and any input props. Add similar shared field components rather than wiring `FormField` by hand in each form.
 - Accessibility: semantic elements, labels on every input, keyboard-operable controls, visible focus.
 
 ## Styling
 
 - Tailwind CSS v4 (via `@tailwindcss/vite`) plus shadcn/ui (Radix, `new-york` style, lucide icons). Theme tokens are CSS variables in `src/renderer/assets/main.css`; change the theme there, not per component.
 - Style with Tailwind utilities and merge conditional classes with `cn()` from `@/lib/utils`. No arbitrary values when a token exists. No inline styles except for dynamic values.
-- Theme: light and dark share one token set in `main.css` (`:root` and `.dark`). Dark mode is a `.dark` class on `<html>`, managed by `ThemeProvider` (`light | dark | system`, persisted in localStorage); read/change it with `useTheme()` and `ThemeToggle`.
-- Always use semantic colour classes (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). Never hard-code hex/`slate-500` colours; they break dark mode.
+- Theme: light only (no dark mode, no toggle), inspired by oracle.com: warm grey page, white rounded cards, near-black ink, red primary, deep teal for banners/navigation. Tokens live in `:root` in `main.css`.
+- Always use semantic colour classes (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). Never hard-code hex/`slate-500` colours.
 - Status meaning has its own tokens: `success`, `warning`, `info`, `destructive` (each with `-foreground`). Use them only for meaning (e.g. low stock = warning, cash variance = destructive), never decoration.
-- `sidebar-*` tokens are for the app navigation; `chart-1..5` for charts. Add new tokens in both `:root` and `.dark` and register them in `@theme inline`.
+- `sidebar-*` tokens are for the app navigation; `chart-1..5` for charts. Add new tokens in `:root` and register them in `@theme inline`.
 - Import with the `@/` alias (maps to `src/renderer/src`).
 
 ## UI components (shadcn/ui)
@@ -88,7 +111,7 @@ Keep a feature's internals private; import from its `index.ts` only.
 
 - Prettier and ESLint are the source of truth (`.prettierrc`, `eslint.config.mjs`); don't hand-format or debate style.
 - Named exports; default export only where a tool requires it.
-- File names: `PascalCase.tsx` for components, `camelCase.ts` for everything else.
+- File names: component files are `PascalCase.tsx`, except a unit's main component, which is `index.tsx`. Everything else is `camelCase.ts`, or the fixed unit names `types.ts`, `constants.ts`, `schema.ts`, `hooks.ts`.
 - Comments explain _why_, not what. Delete dead code instead of commenting it out.
 - Handle errors explicitly at boundaries (IPC, file I/O, parsing); surface user-friendly messages, log details.
 
@@ -123,7 +146,7 @@ Commit format: `type(scope): subject`
 
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 - Scope optional, lowercase, names the feature (`shifts`, `stock`, `cash`, `main`, `preload`).
-- Subject: imperative mood, lowercase start, no trailing period, header ≤ 72 chars.
+- Subject: imperative mood, lowercase start, no trailing period, header ≤ 120 chars.
 - Body (optional, blank line after header): explain why, wrap at 100 chars.
 - Breaking changes: `!` after type/scope and a `BREAKING CHANGE:` footer.
 - One logical change per commit.
