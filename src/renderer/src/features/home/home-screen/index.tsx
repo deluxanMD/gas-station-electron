@@ -1,13 +1,7 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { SECTIONS } from './constants';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MODULES } from './constants';
 import type { HomeScreenProps } from './types';
 
 export function HomeScreen({
@@ -27,15 +21,20 @@ export function HomeScreen({
           Sign out
         </Button>
       </section>
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {SECTIONS.map(({ title, description }) => (
-          <Card key={title}>
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-              <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent />
-          </Card>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {MODULES.map(({ id, title }) => (
+          <button
+            key={id}
+            type="button"
+            className="group rounded-xl text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <Card className="h-full transition-all group-hover:shadow-md group-active:scale-[0.98]">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+              </CardHeader>
+              <CardContent />
+            </Card>
+          </button>
         ))}
       </section>
     </div>

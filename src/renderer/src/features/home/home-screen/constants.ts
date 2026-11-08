@@ -1,6 +1,8 @@
-export const SECTIONS = [
-  { title: 'Fuel', description: 'Tank levels, deliveries and pricing.' },
-  { title: 'Sales', description: 'Daily sales and shift summaries.' },
-  { title: 'Inventory', description: 'Shop stock and reorder alerts.' },
-  { title: 'Reports', description: 'Variance, revenue and trends.' },
+export const MODULES = [
+  { id: 'cash-management', title: 'Cash Management' },
+  { id: 'daily-shift', title: 'Daily Shift' },
+  { id: 'wetstock-management', title: 'Wetstock Management' },
+  { id: 'fuel-pricing', title: 'Fuel Pricing' },
+  { id: 'dispatch', title: 'Dispatch' },
+  { id: 'fuel-p-and-l', title: 'Fuel P&L' },
 ] as const;
