@@ -1,13 +1,15 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MODULES } from './constants';
+import { useVisibleModules } from './hooks';
 import type { HomeScreenProps } from './types';
 
 export function HomeScreen({
   userId,
   onSignOut,
 }: HomeScreenProps): JSX.Element {
+  const modules = useVisibleModules();
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <section className="flex items-center justify-between rounded-xl bg-sidebar px-8 py-6 text-sidebar-foreground">
@@ -22,7 +24,7 @@ export function HomeScreen({
         </Button>
       </section>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {MODULES.map(({ id, title }) => (
+        {modules.map(({ id, title }) => (
           <button
             key={id}
             type="button"

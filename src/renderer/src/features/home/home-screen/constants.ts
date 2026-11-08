@@ -1,3 +1,5 @@
+import type { ModuleId } from '@/features/auth/types';
+
 export const MODULES = [
   { id: 'cash-management', title: 'Cash Management' },
   { id: 'daily-shift', title: 'Daily Shift' },
@@ -5,4 +7,4 @@ export const MODULES = [
   { id: 'fuel-pricing', title: 'Fuel Pricing' },
   { id: 'dispatch', title: 'Dispatch' },
   { id: 'fuel-p-and-l', title: 'Fuel P&L' },
-] as const;
+] as const satisfies readonly { id: ModuleId; title: string }[];

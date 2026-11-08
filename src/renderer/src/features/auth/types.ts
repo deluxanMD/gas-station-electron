@@ -1,5 +1,5 @@
-export type UserRole =
-  'CASHIER' | 'SUPERVISOR' | 'MANAGER' | 'OWNER' | 'DISPATCH' | 'ACCOUNTING';
+import type { UserRole } from '@/features/auth/constants';
+import type { ACCESS } from '@/features/auth/permissions';
 
 export interface AuthUser {
   userId: string;
@@ -20,3 +20,13 @@ export interface AuthState {
   signIn: (token: string) => void;
   signOut: () => void;
 }
+
+export type ModuleId = keyof typeof ACCESS;
+
+export type ModuleAction<M extends ModuleId> = keyof (typeof ACCESS)[M];
+
+// Every module must define `view`; other actions are named per module.
+export type AccessTable = Record<
+  string,
+  { view: readonly UserRole[] } & Record<string, readonly UserRole[]>
+>;

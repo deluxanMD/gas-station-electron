@@ -76,6 +76,7 @@ src/renderer/src/
 - Don't add `useMemo`/`useCallback` by default; add only for measured problems or stable-identity needs. (If React Compiler is adopted, remove existing manual memoization.)
 - Lift state only as high as needed. Prefer local state, then context, then a store (e.g. Zustand) if it's truly shared.
 - Server/async data: use a data-fetching layer (TanStack Query) rather than hand-rolled `useEffect` fetching, once IPC calls multiply.
+- Role-based access: never compare roles in components. Add the module/action to `ACCESS` in `features/auth/permissions.ts` (roles come from the `UserRole` enum) and check it with `useCan(module, action)` or `<Can>`. The UI only hides things; the API must enforce the same rule.
 - Stable `key`s from data ids, never array index for dynamic lists.
 - Forms: one unit per form. `schema.ts` holds the Zod schema; `types.ts` infers the values type with `z.infer`; `hooks.ts` has a `use<Name>Form` hook that wires `useForm` + `zodResolver` and returns `{ form, handleSubmit }`; `index.tsx` calls the hook, wraps the markup in the shadcn `Form`, and renders fields. Reuse the same schema in main to validate before persisting.
 - Form fields: use the shared `TextField` (`@/components/text-field`), a react-hook-form `Controller` wrapper that takes `name`, `label`, optional `description` and any input props. Add similar shared field components rather than wiring `FormField` by hand in each form.
@@ -145,7 +146,7 @@ Commit format: `type(scope): subject`
 
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 - Scope optional, lowercase, names the feature (`shifts`, `stock`, `cash`, `main`, `preload`).
-- Subject: imperative mood, lowercase start, no trailing period, header ≤ 72 chars.
+- Subject: imperative mood, lowercase start, no trailing period, header ≤ 120 chars.
 - Body (optional, blank line after header): explain why, wrap at 100 chars.
 - Breaking changes: `!` after type/scope and a `BREAKING CHANGE:` footer.
 - One logical change per commit.

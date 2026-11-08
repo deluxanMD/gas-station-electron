@@ -1,16 +1,8 @@
-import type { AuthUser, UserRole } from '@/features/auth/types';
-
-const USER_ROLES: readonly string[] = [
-  'CASHIER',
-  'SUPERVISOR',
-  'MANAGER',
-  'OWNER',
-  'DISPATCH',
-  'ACCOUNTING',
-] satisfies UserRole[];
+import { UserRole } from '@/features/auth/constants';
+import type { AuthUser } from '@/features/auth/types';
 
 function isUserRole(value: unknown): value is UserRole {
-  return typeof value === 'string' && USER_ROLES.includes(value);
+  return Object.values(UserRole).includes(value as UserRole);
 }
 
 function decodeBase64Url(value: string): string {
