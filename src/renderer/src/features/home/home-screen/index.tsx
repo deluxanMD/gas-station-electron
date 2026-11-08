@@ -7,18 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
-interface HomeScreenProps {
-  userId: string;
-  onSignOut: () => void;
-}
-
-const SECTIONS = [
-  { title: 'Fuel', description: 'Tank levels, deliveries and pricing.' },
-  { title: 'Sales', description: 'Daily sales and shift summaries.' },
-  { title: 'Inventory', description: 'Shop stock and reorder alerts.' },
-  { title: 'Reports', description: 'Variance, revenue and trends.' },
-] as const;
+import { SECTIONS } from './constants';
+import type { HomeScreenProps } from './types';
 
 export function HomeScreen({
   userId,

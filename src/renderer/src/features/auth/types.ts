@@ -1,9 +1,13 @@
+export type UserRole =
+  'CASHIER' | 'SUPERVISOR' | 'MANAGER' | 'OWNER' | 'DISPATCH' | 'ACCOUNTING';
+
 export interface AuthUser {
   userId: string;
+  userRole: UserRole | null;
 }
 
 export interface LoginResponse {
-  data: AuthUser;
+  data: { token: string };
 }
 
 export interface ErrorResponse {
@@ -11,7 +15,8 @@ export interface ErrorResponse {
 }
 
 export interface AuthState {
+  token: string | null;
   user: AuthUser | null;
-  signIn: (user: AuthUser) => void;
+  signIn: (token: string) => void;
   signOut: () => void;
 }

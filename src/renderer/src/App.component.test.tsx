@@ -3,12 +3,20 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import App from '@/App';
 
+function encodePart(value: object): string {
+  return btoa(JSON.stringify(value));
+}
+
+function makeToken(): string {
+  return `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role: 'MANAGER' })}.signature`;
+}
+
 function mockSuccessfulLogin(): void {
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ data: { userId: 'station1' } }),
+      json: () => Promise.resolve({ data: { token: makeToken() } }),
     }),
   );
 }

@@ -26,12 +26,14 @@ src/renderer/src/
   features/<feature>/<unit>/   # one screen or form per unit, e.g. features/auth/login/
     index.tsx                  # the component (named export)
     types.ts                   # props, hook and form types
+    constants.ts               # constants used by this unit
     schema.ts                  # Zod schema
     hooks.ts                   # custom hooks
   components/                  # shared UI
     <name>/                    # shared component (e.g. text-field/)
       index.tsx                # the component (named export)
       types.ts                 # optional
+      constants.ts             # optional
       hooks.ts                 # optional
     ui/                        # generated shadcn/ui
   hooks/                       # shared hooks
@@ -40,7 +42,7 @@ src/renderer/src/
 
 - Folders are kebab-case. A unit's component lives in `index.tsx` and is imported by folder path (`@/features/auth/login`, `@/components/text-field`). Don't deep-import its other files.
 - No feature-level barrel `index.ts`; import the unit directly.
-- Feature units and shared component folders use the same file names: `index.tsx`, `types.ts`, `hooks.ts`, plus `schema.ts` where there's a form. Only add the files a folder needs.
+- Feature units and shared component folders use the same file names: `index.tsx`, `types.ts`, `constants.ts`, `hooks.ts`, plus `schema.ts` where there's a form. Only add the files a folder needs.
 
 ## Environment
 
@@ -64,7 +66,7 @@ src/renderer/src/
 - Model states with discriminated unions rather than boolean flags.
 - Share IPC channel names and payload types from one place so main, preload and renderer can't drift.
 - Use `import type` for type-only imports.
-- Put a unit's types in its `types.ts`, not inline in the component or hook.
+- Put a unit's types in its `types.ts` and its constants in its `constants.ts`, not inline in the component or hook. Every component has its own pair; don't share one across components.
 
 ## React
 
@@ -108,7 +110,7 @@ src/renderer/src/
 
 - Prettier and ESLint are the source of truth (`.prettierrc`, `eslint.config.mjs`); don't hand-format or debate style.
 - Named exports; default export only where a tool requires it.
-- File names: component files are `PascalCase.tsx`, except a unit's main component, which is `index.tsx`. Everything else is `camelCase.ts`, or the fixed unit names `types.ts`, `schema.ts`, `hooks.ts`.
+- File names: component files are `PascalCase.tsx`, except a unit's main component, which is `index.tsx`. Everything else is `camelCase.ts`, or the fixed unit names `types.ts`, `constants.ts`, `schema.ts`, `hooks.ts`.
 - Comments explain _why_, not what. Delete dead code instead of commenting it out.
 - Handle errors explicitly at boundaries (IPC, file I/O, parsing); surface user-friendly messages, log details.
 
