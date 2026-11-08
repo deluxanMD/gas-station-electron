@@ -1,7 +1,11 @@
-import type { JSX } from 'react';
+import { useState, type JSX } from 'react';
+import { login, type AuthUser } from '@/features/auth/api';
 import { LoginScreen } from '@/features/auth/login-screen';
+import { HomeScreen } from '@/features/home/home-screen';
 
 export function App(): JSX.Element {
+  const [user, setUser] = useState<AuthUser | null>(null);
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex h-16 items-center border-b border-border bg-card px-6">
@@ -10,7 +14,13 @@ export function App(): JSX.Element {
         </span>
       </header>
       <main className="flex flex-1 flex-col">
-        <LoginScreen />
+        {user ? (
+          <HomeScreen userId={user.userId} onSignOut={() => setUser(null)} />
+        ) : (
+          <LoginScreen
+            onSubmit={async (values) => setUser(await login(values))}
+          />
+        )}
       </main>
     </div>
   );

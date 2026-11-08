@@ -28,6 +28,11 @@ export function LoginForm({ onSubmit }: LoginFormProps): JSX.Element {
           placeholder="Enter your password"
           autoComplete="current-password"
         />
+        {form.formState.errors.root && (
+          <p role="alert" className="text-sm text-destructive">
+            {form.formState.errors.root.message}
+          </p>
+        )}
         <Button type="submit" disabled={form.formState.isSubmitting}>
           Sign in
         </Button>

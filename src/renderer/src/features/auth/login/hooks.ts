@@ -16,7 +16,13 @@ export function useLoginForm({
   });
 
   const handleSubmit = form.handleSubmit(async (values) => {
-    await onSubmit?.(values);
+    try {
+      await onSubmit?.(values);
+    } catch (error) {
+      form.setError('root', {
+        message: error instanceof Error ? error.message : 'Sign in failed.',
+      });
+    }
   });
 
   return { form, handleSubmit };
