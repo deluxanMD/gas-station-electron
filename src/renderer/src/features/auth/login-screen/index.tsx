@@ -1,25 +1,27 @@
 import type { JSX } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { LoginForm } from '@/features/auth/login';
+import type { LoginFormProps } from '@/features/auth/login/types';
 
-export function LoginScreen(): JSX.Element {
+export function LoginScreen({ onSubmit }: LoginFormProps): JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-sm shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl">Gas Station Portal</CardTitle>
-          <CardDescription>Sign in to continue</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm />
-        </CardContent>
-      </Card>
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <section className="rounded-xl bg-sidebar px-8 py-6 text-sidebar-foreground">
+        <h1 className="text-2xl font-light">Welcome back</h1>
+        <p className="mt-1 text-sm text-sidebar-foreground/80">
+          Manage fuel, sales and stock across your stations.
+        </p>
+      </section>
+      <section className="flex flex-1 items-center justify-center rounded-xl bg-card p-8 shadow-sm">
+        <div className="grid w-full max-w-sm gap-6">
+          <div>
+            <h2 className="text-3xl font-light">Sign in</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Enter your credentials to continue.
+            </p>
+          </div>
+          <LoginForm onSubmit={onSubmit} />
+        </div>
+      </section>
     </div>
   );
 }

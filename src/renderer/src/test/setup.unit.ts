@@ -16,5 +16,4 @@ vi.stubGlobal(
 afterEach(() => {
   cleanup();
   localStorage.clear();
-  document.documentElement.classList.remove('dark');
 });
