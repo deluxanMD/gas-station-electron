@@ -1,20 +1,9 @@
+import type { ErrorResponse, LoginResponse } from '@/features/auth/types';
 import type { LoginValues } from '@/features/auth/login/types';
 
 const API_VERSION = 'v1';
 
-export interface AuthUser {
-  userId: string;
-}
-
-interface LoginResponse {
-  data: AuthUser;
-}
-
-interface ErrorResponse {
-  message?: string;
-}
-
-export async function login(values: LoginValues): Promise<AuthUser> {
+export async function login(values: LoginValues): Promise<string> {
   let response: Response;
   try {
     response = await fetch(
@@ -34,5 +23,5 @@ export async function login(values: LoginValues): Promise<AuthUser> {
     throw new Error(body.message ?? 'Sign in failed. Please try again.');
   }
 
-  return ((await response.json()) as LoginResponse).data;
+  return ((await response.json()) as LoginResponse).data.token;
 }
