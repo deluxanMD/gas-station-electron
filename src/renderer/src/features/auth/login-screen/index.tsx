@@ -1,8 +1,8 @@
 import type { JSX } from 'react';
 import { LoginForm } from '@/features/auth/login';
-import type { LoginFormProps } from '@/features/auth/login/types';
+import type { LoginScreenProps } from './types';
 
-export function LoginScreen({ onSubmit }: LoginFormProps): JSX.Element {
+export function LoginScreen({ onSubmit }: LoginScreenProps): JSX.Element {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <section className="rounded-xl bg-sidebar px-8 py-6 text-sidebar-foreground">
