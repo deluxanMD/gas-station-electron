@@ -5,10 +5,18 @@ export interface CashierShiftProps {
   onExit: () => void;
 }
 
+// Passed to every step so the shell's Next button can submit a step's form.
+export interface ShiftStepProps {
+  formId: string;
+  onNext: () => void;
+}
+
 export interface ShiftStep {
   id: string;
   title: string;
-  component: ComponentType;
+  // Set when the step is a form; Next then submits that form.
+  formId?: string;
+  component: ComponentType<ShiftStepProps>;
 }
 
 export interface UseStepper {
@@ -17,4 +25,18 @@ export interface UseStepper {
   isLast: boolean;
   next: () => void;
   back: () => void;
+}
+
+// Money in integer cents.
+export interface CreditTotalsCents {
+  creditTerminalCents: number;
+  creditHostCents: number;
+  debitTerminalCents: number;
+  fleetCents: number;
+  svRedemptionCents: number;
+}
+
+export interface CashierShiftState {
+  creditTotals: CreditTotalsCents | null;
+  setCreditTotals: (totals: CreditTotalsCents) => void;
 }

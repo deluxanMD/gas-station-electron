@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 
 function encodePart(value: object): string {
@@ -15,6 +16,7 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
+    useCashierShiftStore.setState({ creditTotals: null });
     useAuthStore.getState().signOut();
     localStorage.clear();
   });
@@ -24,6 +26,15 @@ describe('DailyShiftScreen (real browser)', () => {
     await render(<DailyShiftScreen onExit={() => {}} />);
 
     await expect.element(page.getByText('Step 1 of 3')).toBeVisible();
+    for (const label of [
+      'Credit Totals - Terminal',
+      'Credit Totals - Host',
+      'Debit - Terminal',
+      'Fleet',
+      'SV Redemption',
+    ]) {
+      await page.getByLabelText(label).fill('1.00');
+    }
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 2 of 3')).toBeVisible();
     await page.getByRole('button', { name: 'Next' }).click();
