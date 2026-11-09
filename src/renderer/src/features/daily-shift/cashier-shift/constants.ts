@@ -1,6 +1,6 @@
-import { CashierStepThree } from '@/features/daily-shift/cashier-step-three';
-import { CashierStepTwo } from '@/features/daily-shift/cashier-step-two';
-import { CreditTotals } from '@/features/daily-shift/credit-totals';
+import { CashierStepThree } from '@/features/daily-shift/cashier-shift/cashier-shift-step-three';
+import { CashierStepTwo } from '@/features/daily-shift/cashier-shift/cashier-shift-step-two';
+import { CreditTotals } from '@/features/daily-shift/cashier-shift/cashier-shift-step-one';
 import type { ShiftStep } from './types';
 
 // Titles for steps 2 and 3 are placeholders until the screens are designed.
