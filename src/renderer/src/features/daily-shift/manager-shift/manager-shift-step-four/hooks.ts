@@ -121,6 +121,10 @@ export function useLottoReportsForm({
       reportTimes: values.reportTimes,
       columns,
       netTerminalCents: net.netTerminal,
+      netOnlineCents: net.netOnline,
+      cashRedemCents:
+        net.onlineCashRedem + net.sportsCashRedem + net.instantCashRedem,
+      activationsCents: net.activations,
     });
     onNext();
   });

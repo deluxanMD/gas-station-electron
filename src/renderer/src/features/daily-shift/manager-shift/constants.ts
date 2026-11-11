@@ -33,6 +33,8 @@ export const MANAGER_STEPS: readonly ManagerStep[] = [
   {
     id: 'lotto-reconciliation',
     title: 'Lotto Reconciliation',
+    formId: 'lotto-reconciliation-form',
+    finishLabel: 'Post and Close',
     component: LottoReconciliation,
   },
 ];

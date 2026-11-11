@@ -7,4 +7,6 @@ export const useManagerShiftStore = create<ManagerShiftState>()((set) => ({
   setScratchTickets: (scratchTickets) => set({ scratchTickets }),
   lottoReports: null,
   setLottoReports: (lottoReports) => set({ lottoReports }),
+  lottoReconciliation: null,
+  setLottoReconciliation: (lottoReconciliation) => set({ lottoReconciliation }),
 }));

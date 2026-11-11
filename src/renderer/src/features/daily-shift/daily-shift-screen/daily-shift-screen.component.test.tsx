@@ -22,11 +22,16 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
-    useManagerShiftStore.setState({ scratchTickets: null });
+    useManagerShiftStore.setState({
+      scratchTickets: null,
+      lottoReports: null,
+      lottoReconciliation: null,
+    });
     useSupervisorShiftStore.setState({
       selectedShiftIds: [],
       fuel: null,
       fuelDeliveries: [],
+      fuelDips: null,
     });
     useCashierShiftStore.setState({
       creditTotals: null,
@@ -104,6 +109,11 @@ describe('DailyShiftScreen (real browser)', () => {
 
     for (let step = 1; step <= 5; step++) {
       await expect.element(page.getByText(`Step ${step} of 5`)).toBeVisible();
+      if (step === 5) {
+        await page.getByLabelText('Bullock').fill('0');
+        await page.getByLabelText('Bull-Payouts').fill('0');
+        await page.getByLabelText('Bull-LottoWinner').fill('0');
+      }
       if (step === 3) {
         await page.getByLabelText('Shift #').fill('1');
         for (const denomination of SCRATCH_DENOMINATIONS) {
@@ -114,7 +124,7 @@ describe('DailyShiftScreen (real browser)', () => {
       if (step < 5) await page.getByRole('button', { name: 'Next' }).click();
     }
     await expect
-      .element(page.getByRole('button', { name: 'Finish' }))
+      .element(page.getByRole('button', { name: 'Post and Close' }))
       .toBeVisible();
   });
 

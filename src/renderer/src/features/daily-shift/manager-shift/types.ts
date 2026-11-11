@@ -16,6 +16,8 @@ export interface ManagerStep {
   title: string;
   // Set when the step is a form; Next then submits that form.
   formId?: string;
+  // Label of the shell's button on the last step; defaults to "Finish".
+  finishLabel?: string;
   component: ComponentType<ManagerStepProps>;
 }
 
@@ -61,6 +63,22 @@ export interface LottoReportsData {
   columns: Record<LottoColumn, Record<LottoInputRow, number>>; // cents
   // Terminal net for the day: day-end slip minus the previous day's.
   netTerminalCents: number;
+  // Net (day end less previous day) figures the reconciliation needs.
+  netOnlineCents: number;
+  cashRedemCents: number; // On-Line + Sports + Instant cash redemptions
+  activationsCents: number;
+}
+
+export type LossAttribution = '' | 'employee' | 'previous-day' | 'next-day';
+
+export interface LottoReconciliationData {
+  bullockCents: number;
+  bullPayoutsCents: number;
+  bullLottoWinnerCents: number;
+  cashNetCents: number;
+  // '' means over/short is not attributed yet; due within 3 days.
+  attribution: LossAttribution;
+  totalCents: number;
 }
 
 export interface ManagerShiftState {
@@ -68,6 +86,8 @@ export interface ManagerShiftState {
   setScratchTickets: (data: ScratchTicketsData) => void;
   lottoReports: LottoReportsData | null;
   setLottoReports: (data: LottoReportsData) => void;
+  lottoReconciliation: LottoReconciliationData | null;
+  setLottoReconciliation: (data: LottoReconciliationData) => void;
 }
 
 export interface UseStepper {

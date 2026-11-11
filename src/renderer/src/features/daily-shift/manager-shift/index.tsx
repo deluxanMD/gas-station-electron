@@ -31,11 +31,11 @@ export function ManagerShift({ onExit }: ManagerShiftProps): JSX.Element {
           </Button>
           {step.formId ? (
             <Button type="submit" form={step.formId}>
-              {isLast ? 'Finish' : 'Next'}
+              {isLast ? (step.finishLabel ?? 'Finish') : 'Next'}
             </Button>
           ) : (
             <Button onClick={isLast ? onExit : next}>
-              {isLast ? 'Finish' : 'Next'}
+              {isLast ? (step.finishLabel ?? 'Finish') : 'Next'}
             </Button>
           )}
         </div>
