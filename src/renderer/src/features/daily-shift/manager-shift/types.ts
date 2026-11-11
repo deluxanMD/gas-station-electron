@@ -34,9 +34,40 @@ export interface ScratchTicketsData {
   totalAmountCents: number;
 }
 
+// The OLG slips the manager copies figures from.
+export type LottoColumn = 'yesterday' | 'fullDay' | 'dayEnd';
+
+export type LottoInputRow =
+  | 'onlineNetSales'
+  | 'onlineCashRedem'
+  | 'sportsProline'
+  | 'sportsPools'
+  | 'sportsVoids'
+  | 'sportsCashRedem'
+  | 'instantCashRedem'
+  | 'giftSales'
+  | 'giftVoids'
+  | 'giftCashOut'
+  | 'decliningBalance'
+  | 'declinedOffer'
+  | 'netPromotion'
+  | 'freeOnline'
+  | 'freeInstant'
+  | 'activations';
+
+export interface LottoReportsData {
+  dates: Record<LottoColumn, string>; // YYYY-MM-DD, '' when not entered
+  reportTimes: Record<LottoColumn, string>; // HH:mm, '' when not entered
+  columns: Record<LottoColumn, Record<LottoInputRow, number>>; // cents
+  // Terminal net for the day: day-end slip minus the previous day's.
+  netTerminalCents: number;
+}
+
 export interface ManagerShiftState {
   scratchTickets: ScratchTicketsData | null;
   setScratchTickets: (data: ScratchTicketsData) => void;
+  lottoReports: LottoReportsData | null;
+  setLottoReports: (data: LottoReportsData) => void;
 }
 
 export interface UseStepper {

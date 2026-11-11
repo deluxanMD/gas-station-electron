@@ -24,7 +24,12 @@ export const MANAGER_STEPS: readonly ManagerStep[] = [
     formId: 'instant-scratch-tickets-form',
     component: InstantScratchTickets,
   },
-  { id: 'lotto-reports', title: 'Lotto Reports', component: LottoReports },
+  {
+    id: 'lotto-reports',
+    title: 'Lotto Reports',
+    formId: 'lotto-reports-form',
+    component: LottoReports,
+  },
   {
     id: 'lotto-reconciliation',
     title: 'Lotto Reconciliation',

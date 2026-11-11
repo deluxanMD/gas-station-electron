@@ -5,4 +5,6 @@ import type { ManagerShiftState } from './types';
 export const useManagerShiftStore = create<ManagerShiftState>()((set) => ({
   scratchTickets: null,
   setScratchTickets: (scratchTickets) => set({ scratchTickets }),
+  lottoReports: null,
+  setLottoReports: (lottoReports) => set({ lottoReports }),
 }));
