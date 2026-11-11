@@ -55,6 +55,19 @@ describe('DailyShiftScreen (real browser)', () => {
       .toBeVisible();
   });
 
+  it('walks a supervisor through the five Close Day steps', async () => {
+    signInAs('SUPERVISOR');
+    await render(<DailyShiftScreen onExit={() => {}} />);
+
+    for (let step = 1; step <= 5; step++) {
+      await expect.element(page.getByText(`Step ${step} of 5`)).toBeVisible();
+      if (step < 5) await page.getByRole('button', { name: 'Next' }).click();
+    }
+    await expect
+      .element(page.getByRole('button', { name: 'Finish' }))
+      .toBeVisible();
+  });
+
   it('has no flow for a role without one yet', async () => {
     signInAs('MANAGER');
     await render(<DailyShiftScreen onExit={() => {}} />);
