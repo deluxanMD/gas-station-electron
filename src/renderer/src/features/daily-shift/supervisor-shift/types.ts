@@ -55,10 +55,23 @@ export interface FuelData {
   totalVolumeCentiLitres: number;
 }
 
+export interface FuelDeliveryEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  bolNumber: string;
+  // Litres in hundredths, so sums stay exact.
+  regCentiLitres: number;
+  premCentiLitres: number;
+  dieselCentiLitres: number;
+  totalCentiLitres: number;
+}
+
 export interface SupervisorShiftState {
   // Shifts the supervisor confirmed with Review as part of the day.
   selectedShiftIds: string[];
   setSelectedShiftIds: (ids: string[]) => void;
   fuel: FuelData | null;
   setFuel: (fuel: FuelData) => void;
+  fuelDeliveries: FuelDeliveryEntry[];
+  setFuelDeliveries: (deliveries: FuelDeliveryEntry[]) => void;
 }

@@ -8,5 +8,7 @@ export const useSupervisorShiftStore = create<SupervisorShiftState>()(
     setSelectedShiftIds: (selectedShiftIds) => set({ selectedShiftIds }),
     fuel: null,
     setFuel: (fuel) => set({ fuel }),
+    fuelDeliveries: [],
+    setFuelDeliveries: (fuelDeliveries) => set({ fuelDeliveries }),
   }),
 );

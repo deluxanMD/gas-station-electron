@@ -19,7 +19,11 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
-    useSupervisorShiftStore.setState({ selectedShiftIds: [], fuel: null });
+    useSupervisorShiftStore.setState({
+      selectedShiftIds: [],
+      fuel: null,
+      fuelDeliveries: [],
+    });
     useCashierShiftStore.setState({
       creditTotals: null,
       dailySummary: null,
