@@ -3,6 +3,8 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
+import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
+import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { DIP_PRODUCTS } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-four/constants';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
 import { seedClosedShift } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
@@ -20,6 +22,7 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
+    useManagerShiftStore.setState({ scratchTickets: null });
     useSupervisorShiftStore.setState({
       selectedShiftIds: [],
       fuel: null,
@@ -95,8 +98,28 @@ describe('DailyShiftScreen (real browser)', () => {
       .toBeVisible();
   });
 
-  it('has no flow for a role without one yet', async () => {
+  it('walks a manager through the five steps', async () => {
     signInAs('MANAGER');
+    await render(<DailyShiftScreen onExit={() => {}} />);
+
+    for (let step = 1; step <= 5; step++) {
+      await expect.element(page.getByText(`Step ${step} of 5`)).toBeVisible();
+      if (step === 3) {
+        await page.getByLabelText('Shift #').fill('1');
+        for (const denomination of SCRATCH_DENOMINATIONS) {
+          await page.getByLabelText(`$${denomination} close`).fill('0');
+          await page.getByLabelText(`$${denomination} activations`).fill('0');
+        }
+      }
+      if (step < 5) await page.getByRole('button', { name: 'Next' }).click();
+    }
+    await expect
+      .element(page.getByRole('button', { name: 'Finish' }))
+      .toBeVisible();
+  });
+
+  it('has no flow for a role without one yet', async () => {
+    signInAs('OWNER');
     await render(<DailyShiftScreen onExit={() => {}} />);
 
     await expect

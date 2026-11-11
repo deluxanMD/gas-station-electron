@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { UserRole } from '@/features/auth/constants';
 import { CashierShift } from '@/features/daily-shift/cashier-shift';
+import { ManagerShift } from '@/features/daily-shift/manager-shift';
 import { SupervisorShift } from '@/features/daily-shift/supervisor-shift';
 import type { CashierShiftProps } from '@/features/daily-shift/cashier-shift/types';
 
@@ -10,4 +11,5 @@ export const SHIFT_FLOWS: Partial<
 > = {
   [UserRole.Cashier]: CashierShift,
   [UserRole.Supervisor]: SupervisorShift,
+  [UserRole.Manager]: ManagerShift,
 };
