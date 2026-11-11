@@ -5,4 +5,6 @@ import type { CashierShiftState } from './types';
 export const useCashierShiftStore = create<CashierShiftState>()((set) => ({
   creditTotals: null,
   setCreditTotals: (creditTotals) => set({ creditTotals }),
+  dailySummary: null,
+  setDailySummary: (dailySummary) => set({ dailySummary }),
 }));

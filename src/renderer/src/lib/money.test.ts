@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   formatCentsAsAmount,
   isValidAmount,
+  isValidSignedAmount,
   parseAmountToCents,
+  parseSignedAmountToCents,
 } from './money';
 
 describe('money', () => {
@@ -24,5 +26,12 @@ describe('money', () => {
     expect(formatCentsAsAmount(1250)).toBe('12.50');
     expect(formatCentsAsAmount(7)).toBe('0.07');
     expect(formatCentsAsAmount(0)).toBe('0.00');
+  });
+
+  it('handles signed amounts', () => {
+    expect(isValidSignedAmount('-0.02')).toBe(true);
+    expect(isValidSignedAmount('--1')).toBe(false);
+    expect(parseSignedAmountToCents('-0.02')).toBe(-2);
+    expect(parseSignedAmountToCents('1.5')).toBe(150);
   });
 });

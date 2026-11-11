@@ -36,7 +36,24 @@ export interface CreditTotalsCents {
   svRedemptionCents: number;
 }
 
+export interface DailySummaryData {
+  dayEndDate: string; // YYYY-MM-DD
+  dayEndTime: string; // HH:mm, 24-hour
+  shiftNumber: number;
+  // Only set when the cashier changed the prepopulated shift number.
+  shiftChangeReason: string;
+  fuelSalesCents: number;
+  itemSalesCents: number;
+  gstCents: number;
+  hstCents: number;
+  // Can be negative.
+  pennyRoundingCents: number;
+  totalSalesCents: number;
+}
+
 export interface CashierShiftState {
   creditTotals: CreditTotalsCents | null;
   setCreditTotals: (totals: CreditTotalsCents) => void;
+  dailySummary: DailySummaryData | null;
+  setDailySummary: (summary: DailySummaryData) => void;
 }

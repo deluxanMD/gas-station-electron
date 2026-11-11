@@ -18,3 +18,19 @@ export function formatCentsAsAmount(cents: number): string {
   const fraction = String(Math.abs(cents % 100)).padStart(2, '0');
   return `${whole}.${fraction}`;
 }
+
+// Same as above but allows a leading "-", e.g. penny rounding of "-0.02".
+const SIGNED_AMOUNT_PATTERN = /^-?\d+(\.\d{1,2})?$/;
+
+export function isValidSignedAmount(value: string): boolean {
+  return SIGNED_AMOUNT_PATTERN.test(value);
+}
+
+export function parseSignedAmountToCents(value: string): number {
+  if (!isValidSignedAmount(value)) {
+    throw new RangeError(`Invalid amount: ${value}`);
+  }
+  const negative = value.startsWith('-');
+  const cents = parseAmountToCents(negative ? value.slice(1) : value);
+  return negative ? -cents : cents;
+}

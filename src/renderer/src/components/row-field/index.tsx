@@ -8,6 +8,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import type { RowFieldProps } from './types';
 
 // One table-style row: label cell on the left, input cell on the right.
@@ -15,6 +16,7 @@ import type { RowFieldProps } from './types';
 export function RowField<TFieldValues extends FieldValues>({
   name,
   label,
+  highlighted = false,
   ...inputProps
 }: RowFieldProps<TFieldValues>): JSX.Element {
   const { control } = useFormContext<TFieldValues>();
@@ -24,8 +26,18 @@ export function RowField<TFieldValues extends FieldValues>({
       control={control}
       name={name}
       render={({ field }) => (
-        <FormItem className="grid grid-cols-[1fr_2fr] gap-0 border-b border-border last:border-b-0">
-          <FormLabel className="bg-muted px-4 py-3 text-base font-medium">
+        <FormItem
+          className={cn(
+            'grid grid-cols-[1fr_2fr] gap-0 border-b border-border last:border-b-0',
+            highlighted && 'bg-primary/10',
+          )}
+        >
+          <FormLabel
+            className={cn(
+              'px-4 py-3 text-base font-medium',
+              highlighted ? 'bg-primary/15 font-bold' : 'bg-muted',
+            )}
+          >
             {label}
           </FormLabel>
           <div className="flex flex-col justify-center gap-1 px-3 py-2">

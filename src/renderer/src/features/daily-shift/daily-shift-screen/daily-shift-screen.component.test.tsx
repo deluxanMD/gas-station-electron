@@ -16,7 +16,7 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
-    useCashierShiftStore.setState({ creditTotals: null });
+    useCashierShiftStore.setState({ creditTotals: null, dailySummary: null });
     useAuthStore.getState().signOut();
     localStorage.clear();
   });
@@ -37,6 +37,13 @@ describe('DailyShiftScreen (real browser)', () => {
     }
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 2 of 3')).toBeVisible();
+    await page.getByLabelText('Day End Date').fill('2026-11-09');
+    await page.getByLabelText('Day End Time (AM/PM)').fill('23:30');
+    for (const label of ['Fuel Sales', 'Item Sales', 'GST', 'HST']) {
+      await page.getByLabelText(label).fill('1.00');
+    }
+    await page.getByLabelText('Penny Rounding').fill('0');
+    await page.getByLabelText('Total Sales').fill('4.00');
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 3 of 3')).toBeVisible();
     await expect
