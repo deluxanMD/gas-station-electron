@@ -43,8 +43,22 @@ export interface ClosedShift {
   cashClose: CashCloseData;
 }
 
+export interface FuelGradeEntry {
+  grade: string;
+  // Litres in hundredths, so sums stay exact.
+  volumeCentiLitres: number;
+  totalCents: number;
+}
+
+export interface FuelData {
+  grades: FuelGradeEntry[];
+  totalVolumeCentiLitres: number;
+}
+
 export interface SupervisorShiftState {
   // Shifts the supervisor confirmed with Review as part of the day.
   selectedShiftIds: string[];
   setSelectedShiftIds: (ids: string[]) => void;
+  fuel: FuelData | null;
+  setFuel: (fuel: FuelData) => void;
 }

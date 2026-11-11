@@ -14,7 +14,12 @@ export const SUPERVISOR_STEPS: readonly SupervisorStep[] = [
     formId: 'review-shifts-form',
     component: ReviewShifts,
   },
-  { id: 'fuel', title: 'Fuel', component: FuelEntry },
+  {
+    id: 'fuel',
+    title: 'Fuel',
+    formId: 'fuel-form',
+    component: FuelEntry,
+  },
   { id: 'fuel-delivery', title: 'Fuel Delivery', component: FuelDelivery },
   { id: 'fuel-dips', title: 'Fuel Dips', component: FuelDips },
   {

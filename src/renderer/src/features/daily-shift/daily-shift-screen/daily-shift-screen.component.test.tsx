@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
+import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
 import { seedClosedShift } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
@@ -18,7 +19,7 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
-    useSupervisorShiftStore.setState({ selectedShiftIds: [] });
+    useSupervisorShiftStore.setState({ selectedShiftIds: [], fuel: null });
     useCashierShiftStore.setState({
       creditTotals: null,
       dailySummary: null,
@@ -67,6 +68,13 @@ describe('DailyShiftScreen (real browser)', () => {
     await page.getByRole('button', { name: 'Review' }).click();
     for (let step = 1; step <= 5; step++) {
       await expect.element(page.getByText(`Step ${step} of 5`)).toBeVisible();
+      if (step === 2) {
+        for (const grade of FUEL_GRADES) {
+          await page.getByLabelText(`${grade} volume`).fill('1');
+          await page.getByLabelText(`${grade} total`).fill('1');
+        }
+        await page.getByLabelText('Total volume').fill('5');
+      }
       if (step < 5) await page.getByRole('button', { name: 'Next' }).click();
     }
     await expect
