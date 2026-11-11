@@ -1,9 +1,8 @@
-import { CashierStepThree } from '@/features/daily-shift/cashier-shift/cashier-shift-step-three';
+import { CashClose } from '@/features/daily-shift/cashier-shift/cashier-shift-step-three';
 import { DailySummary } from '@/features/daily-shift/cashier-shift/cashier-shift-step-two';
 import { CreditTotals } from '@/features/daily-shift/cashier-shift/cashier-shift-step-one';
 import type { ShiftStep } from './types';
 
-// The title for step 3 is a placeholder until the screen is designed.
 export const CASHIER_STEPS: readonly ShiftStep[] = [
   {
     id: 'credit-totals',
@@ -17,5 +16,10 @@ export const CASHIER_STEPS: readonly ShiftStep[] = [
     formId: 'daily-summary-form',
     component: DailySummary,
   },
-  { id: 'step-three', title: 'Step 3', component: CashierStepThree },
+  {
+    id: 'cash-close',
+    title: 'Payouts and Cash on Hand',
+    formId: 'cash-close-form',
+    component: CashClose,
+  },
 ];

@@ -21,14 +21,17 @@ export function CashierShift({ onExit }: CashierShiftProps): JSX.Element {
         <CardTitle className="text-xl">{step.title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <StepComponent formId={step.formId ?? ''} onNext={next} />
+        <StepComponent
+          formId={step.formId ?? ''}
+          onNext={isLast ? onExit : next}
+        />
         <div className="mt-6 flex justify-between">
           <Button variant="outline" onClick={isFirst ? onExit : back}>
             {isFirst ? 'Cancel' : 'Back'}
           </Button>
           {step.formId ? (
             <Button type="submit" form={step.formId}>
-              {isLast ? 'Finish' : 'Next'}
+              {isLast ? 'Save and Close' : 'Next'}
             </Button>
           ) : (
             <Button onClick={isLast ? onExit : next}>

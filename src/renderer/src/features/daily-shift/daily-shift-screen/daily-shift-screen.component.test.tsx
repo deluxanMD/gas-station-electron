@@ -16,7 +16,11 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
-    useCashierShiftStore.setState({ creditTotals: null, dailySummary: null });
+    useCashierShiftStore.setState({
+      creditTotals: null,
+      dailySummary: null,
+      cashClose: null,
+    });
     useAuthStore.getState().signOut();
     localStorage.clear();
   });
@@ -47,7 +51,7 @@ describe('DailyShiftScreen (real browser)', () => {
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 3 of 3')).toBeVisible();
     await expect
-      .element(page.getByRole('button', { name: 'Finish' }))
+      .element(page.getByRole('button', { name: 'Save and Close' }))
       .toBeVisible();
   });
 

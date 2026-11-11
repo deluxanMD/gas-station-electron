@@ -37,7 +37,11 @@ async function fillSummary(totalSales: string): Promise<void> {
 describe('Daily Summary window (real browser)', () => {
   afterEach(() => {
     useAuthStore.getState().signOut();
-    useCashierShiftStore.setState({ creditTotals: null, dailySummary: null });
+    useCashierShiftStore.setState({
+      creditTotals: null,
+      dailySummary: null,
+      cashClose: null,
+    });
     localStorage.clear();
   });
 
