@@ -21,7 +21,9 @@ describe('HomeScreen modules by role (real browser)', () => {
 
   it('shows every module an owner can view', async () => {
     signInAs('OWNER');
-    await render(<HomeScreen userId="u1" onSignOut={() => {}} />);
+    await render(
+      <HomeScreen userId="u1" onSignOut={() => {}} onSelectModule={() => {}} />,
+    );
 
     await expect
       .element(page.getByRole('button', { name: 'Fuel Pricing' }))
@@ -33,7 +35,9 @@ describe('HomeScreen modules by role (real browser)', () => {
 
   it('hides modules a cashier cannot view', async () => {
     signInAs('CASHIER');
-    await render(<HomeScreen userId="u1" onSignOut={() => {}} />);
+    await render(
+      <HomeScreen userId="u1" onSignOut={() => {}} onSelectModule={() => {}} />,
+    );
 
     await expect
       .element(page.getByRole('button', { name: 'Daily Shift' }))

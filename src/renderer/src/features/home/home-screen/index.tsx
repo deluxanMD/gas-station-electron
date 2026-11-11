@@ -7,6 +7,7 @@ import type { HomeScreenProps } from './types';
 export function HomeScreen({
   userId,
   onSignOut,
+  onSelectModule,
 }: HomeScreenProps): JSX.Element {
   const modules = useVisibleModules();
 
@@ -28,6 +29,7 @@ export function HomeScreen({
           <button
             key={id}
             type="button"
+            onClick={() => onSelectModule(id)}
             className="group rounded-xl text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <Card className="h-full transition-all group-hover:shadow-md group-active:scale-[0.98]">

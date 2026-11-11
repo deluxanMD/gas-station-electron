@@ -8,8 +8,8 @@ function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
 }
 
-function makeToken(): string {
-  return `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role: 'MANAGER' })}.signature`;
+function makeToken(role = 'MANAGER'): string {
+  return `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role })}.signature`;
 }
 
 function mockSuccessfulLogin(): void {
@@ -33,6 +33,8 @@ describe('App navigation (real browser)', () => {
     vi.unstubAllGlobals();
     useAuthStore.getState().signOut();
     localStorage.clear();
+    // Hash routing persists across tests in the same page.
+    window.location.hash = '';
   });
 
   it('navigates to the home screen after login and back on sign out', async () => {
@@ -55,6 +57,21 @@ describe('App navigation (real browser)', () => {
 
     await render(<App />);
 
+    await expect.element(page.getByText('Welcome, station1')).toBeVisible();
+  });
+
+  it('opens daily shift from the home card and returns home', async () => {
+    localStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({ state: { token: makeToken('CASHIER') }, version: 0 }),
+    );
+    await useAuthStore.persist.rehydrate();
+
+    await render(<App />);
+    await page.getByRole('button', { name: 'Daily Shift' }).click();
+    await expect.element(page.getByText('Step 1 of 3')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Back to home' }).click();
     await expect.element(page.getByText('Welcome, station1')).toBeVisible();
   });
 
