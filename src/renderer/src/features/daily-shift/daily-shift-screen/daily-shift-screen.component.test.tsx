@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
+import { DIP_PRODUCTS } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-four/constants';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
 import { seedClosedShift } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
@@ -78,6 +79,14 @@ describe('DailyShiftScreen (real browser)', () => {
           await page.getByLabelText(`${grade} total`).fill('1');
         }
         await page.getByLabelText('Total volume').fill('5');
+      }
+      if (step === 4) {
+        await page.getByLabelText('Date').fill('2026-11-09');
+        await page.getByLabelText('Time').fill('22:15');
+        for (const product of DIP_PRODUCTS) {
+          await page.getByLabelText(`${product} TC volume`).fill('1');
+          await page.getByLabelText(`${product} 90% ullage`).fill('1');
+        }
       }
       if (step < 5) await page.getByRole('button', { name: 'Next' }).click();
     }

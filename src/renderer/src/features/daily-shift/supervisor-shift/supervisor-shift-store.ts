@@ -10,5 +10,7 @@ export const useSupervisorShiftStore = create<SupervisorShiftState>()(
     setFuel: (fuel) => set({ fuel }),
     fuelDeliveries: [],
     setFuelDeliveries: (fuelDeliveries) => set({ fuelDeliveries }),
+    fuelDips: null,
+    setFuelDips: (fuelDips) => set({ fuelDips }),
   }),
 );

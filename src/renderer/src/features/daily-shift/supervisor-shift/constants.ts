@@ -26,7 +26,12 @@ export const SUPERVISOR_STEPS: readonly SupervisorStep[] = [
     formId: 'fuel-delivery-form',
     component: FuelDelivery,
   },
-  { id: 'fuel-dips', title: 'Fuel Dips', component: FuelDips },
+  {
+    id: 'fuel-dips',
+    title: 'Add Fuel Dips',
+    formId: 'fuel-dips-form',
+    component: FuelDips,
+  },
   {
     id: 'greenbook-variance-report',
     title: 'Greenbook Variance Report',

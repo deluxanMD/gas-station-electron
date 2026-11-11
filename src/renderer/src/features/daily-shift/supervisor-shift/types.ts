@@ -66,6 +66,19 @@ export interface FuelDeliveryEntry {
   totalCentiLitres: number;
 }
 
+export interface FuelDipEntry {
+  product: string;
+  // Litres in hundredths, so sums stay exact.
+  tcVolumeCentiLitres: number;
+  ullage90CentiLitres: number;
+}
+
+export interface FuelDipsData {
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm, 24-hour
+  products: FuelDipEntry[];
+}
+
 export interface SupervisorShiftState {
   // Shifts the supervisor confirmed with Review as part of the day.
   selectedShiftIds: string[];
@@ -74,4 +87,6 @@ export interface SupervisorShiftState {
   setFuel: (fuel: FuelData) => void;
   fuelDeliveries: FuelDeliveryEntry[];
   setFuelDeliveries: (deliveries: FuelDeliveryEntry[]) => void;
+  fuelDips: FuelDipsData | null;
+  setFuelDips: (dips: FuelDipsData) => void;
 }
