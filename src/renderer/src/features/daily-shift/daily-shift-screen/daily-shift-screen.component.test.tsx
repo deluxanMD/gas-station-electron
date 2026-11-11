@@ -3,6 +3,8 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
+import { seedClosedShift } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
+import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 
 function encodePart(value: object): string {
@@ -16,6 +18,7 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
+    useSupervisorShiftStore.setState({ selectedShiftIds: [] });
     useCashierShiftStore.setState({
       creditTotals: null,
       dailySummary: null,
@@ -56,9 +59,12 @@ describe('DailyShiftScreen (real browser)', () => {
   });
 
   it('walks a supervisor through the five Close Day steps', async () => {
+    seedClosedShift();
     signInAs('SUPERVISOR');
     await render(<DailyShiftScreen onExit={() => {}} />);
 
+    await page.getByLabelText(/Shift 1/).click();
+    await page.getByRole('button', { name: 'Review' }).click();
     for (let step = 1; step <= 5; step++) {
       await expect.element(page.getByText(`Step ${step} of 5`)).toBeVisible();
       if (step < 5) await page.getByRole('button', { name: 'Next' }).click();

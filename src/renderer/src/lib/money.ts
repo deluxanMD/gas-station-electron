@@ -12,11 +12,13 @@ export function parseAmountToCents(value: string): number {
   return Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
 }
 
-// 1250 -> "12.50"
+// 1250 -> "12.50", -2 -> "-0.02"
 export function formatCentsAsAmount(cents: number): string {
-  const whole = Math.trunc(cents / 100);
-  const fraction = String(Math.abs(cents % 100)).padStart(2, '0');
-  return `${whole}.${fraction}`;
+  const sign = cents < 0 ? '-' : '';
+  const abs = Math.abs(cents);
+  const whole = Math.trunc(abs / 100);
+  const fraction = String(abs % 100).padStart(2, '0');
+  return `${sign}${whole}.${fraction}`;
 }
 
 // Same as above but allows a leading "-", e.g. penny rounding of "-0.02".

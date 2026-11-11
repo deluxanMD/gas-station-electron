@@ -8,7 +8,12 @@ import type { SupervisorStep } from './types';
 // Windows follow the Assistant Manager/Shift Lead "Close Day" workflow.
 // Each is a placeholder until its screen is designed.
 export const SUPERVISOR_STEPS: readonly SupervisorStep[] = [
-  { id: 'review-shifts', title: 'Review Shifts', component: ReviewShifts },
+  {
+    id: 'review-shifts',
+    title: 'Review Shifts',
+    formId: 'review-shifts-form',
+    component: ReviewShifts,
+  },
   { id: 'fuel', title: 'Fuel', component: FuelEntry },
   { id: 'fuel-delivery', title: 'Fuel Delivery', component: FuelDelivery },
   { id: 'fuel-dips', title: 'Fuel Dips', component: FuelDips },

@@ -26,6 +26,8 @@ describe('money', () => {
     expect(formatCentsAsAmount(1250)).toBe('12.50');
     expect(formatCentsAsAmount(7)).toBe('0.07');
     expect(formatCentsAsAmount(0)).toBe('0.00');
+    expect(formatCentsAsAmount(-2)).toBe('-0.02');
+    expect(formatCentsAsAmount(-1250)).toBe('-12.50');
   });
 
   it('handles signed amounts', () => {
