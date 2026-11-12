@@ -6,7 +6,7 @@ import {
   parseAmountToCents,
   parseSignedAmountToCents,
 } from '@/lib/money';
-import { useAuthStore } from '@/features/auth/auth-store';
+import { useOpenShift } from '@/features/shift/hooks';
 import { EMPTY_DAILY_SUMMARY } from './constants';
 import { createDailySummarySchema } from './schema';
 import type {
@@ -18,8 +18,8 @@ import type {
 export function useDailySummaryForm({
   onNext,
 }: UseDailySummaryFormOptions): UseDailySummaryFormReturn {
-  const shiftId = useAuthStore((s) => s.shiftId);
-  const defaultShiftNumber = shiftId === null ? '' : String(shiftId);
+  const shift = useOpenShift();
+  const defaultShiftNumber = shift === null ? '' : String(shift.id);
   const saved = useCashierShiftStore((s) => s.dailySummary);
   const setDailySummary = useCashierShiftStore((s) => s.setDailySummary);
 

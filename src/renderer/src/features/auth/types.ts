@@ -7,12 +7,13 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  data: { token: string; shiftId: number };
+  data: { token: string; id: number };
 }
 
 export interface LoginResult {
   token: string;
-  shiftId: number;
+  // The API's numeric user id (the token only carries the login name).
+  id: number;
 }
 
 export interface ErrorResponse {
@@ -22,9 +23,9 @@ export interface ErrorResponse {
 export interface AuthState {
   token: string | null;
   user: AuthUser | null;
-  // The open shift the API assigned at login; null if unknown (old session).
-  shiftId: number | null;
-  signIn: (token: string, shiftId?: number | null) => void;
+  // The API's numeric user id, needed to start and look up shifts.
+  dbUserId: number | null;
+  signIn: (token: string, dbUserId?: number | null) => void;
   signOut: () => void;
 }
 

@@ -10,28 +10,30 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      shiftId: null,
-      signIn: (token, shiftId = null) => {
+      dbUserId: null,
+      signIn: (token, dbUserId = null) => {
         const user = decodeToken(token);
         set(
           user
-            ? { token, user, shiftId }
-            : { token: null, user: null, shiftId: null },
+            ? { token, user, dbUserId }
+            : { token: null, user: null, dbUserId: null },
         );
       },
-      signOut: () => set({ token: null, user: null, shiftId: null }),
+      signOut: () => set({ token: null, user: null, dbUserId: null }),
     }),
     {
       name: AUTH_STORAGE_KEY,
-      partialize: (state) => ({ token: state.token, shiftId: state.shiftId }),
+      partialize: (state) => ({ token: state.token, dbUserId: state.dbUserId }),
       merge: (persisted, current) => {
         const saved = persisted as
-          { token?: string | null; shiftId?: number | null } | undefined;
+          { token?: string | null; dbUserId?: number | null } | undefined;
         const token = saved?.token;
-        if (!token) return current;
+        // A session saved before the user id was stored cannot start a shift,
+        // so it is dropped and the user signs in again.
+        if (!token || typeof saved?.dbUserId !== 'number') return current;
         const user = decodeToken(token);
         return user
-          ? { ...current, token, user, shiftId: saved?.shiftId ?? null }
+          ? { ...current, token, user, dbUserId: saved.dbUserId }
           : current;
       },
     },

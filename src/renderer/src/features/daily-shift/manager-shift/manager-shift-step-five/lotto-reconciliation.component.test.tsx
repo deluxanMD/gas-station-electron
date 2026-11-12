@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
@@ -43,7 +44,17 @@ async function openReconciliationStep(onExit: () => void): Promise<void> {
 }
 
 describe('Lotto Reconciliation window (real browser)', () => {
+  beforeEach(() => {
+    seedOpenShift();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(Response.json({ data: {} }))),
+    );
+  });
+
   afterEach(() => {
+    vi.unstubAllGlobals();
+    resetShiftStore();
     useAuthStore.getState().signOut();
     useManagerShiftStore.setState({
       scratchTickets: null,
@@ -106,7 +117,11 @@ describe('Lotto Reconciliation window (real browser)', () => {
       .toHaveTextContent('0.00');
 
     await page.getByRole('button', { name: 'Post and Close' }).click();
-    expect(exited).toBe(true);
+    await vi.waitFor(() => expect(exited).toBe(true));
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/shifts\/9\/close$/),
+      expect.objectContaining({ method: 'POST' }),
+    );
     expect(useManagerShiftStore.getState().lottoReconciliation).toEqual({
       bullockCents: 80_000,
       bullPayoutsCents: 10_000,
@@ -128,7 +143,29 @@ describe('Lotto Reconciliation window (real browser)', () => {
 
     await expect.element(page.getByRole('alert')).toBeVisible();
     await page.getByRole('button', { name: 'Post and Close' }).click();
-    expect(exited).toBe(true);
+    await vi.waitFor(() => expect(exited).toBe(true));
+  });
+
+  it('stays on the step and shows the error when the shift cannot be closed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          Response.json({ message: 'Database down' }, { status: 500 }),
+        ),
+      ),
+    );
+    let exited = false;
+    await openReconciliationStep(() => {
+      exited = true;
+    });
+    await page.getByLabelText('Bullock').fill('0');
+    await page.getByLabelText('Bull-Payouts').fill('0');
+    await page.getByLabelText('Bull-LottoWinner').fill('0');
+    await page.getByRole('button', { name: 'Post and Close' }).click();
+
+    await expect.element(page.getByText('Database down')).toBeVisible();
+    expect(exited).toBe(false);
   });
 
   it('requires the Bullock figures', async () => {

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
+import { useShiftStore } from '@/features/shift/shift-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 
@@ -12,7 +14,8 @@ function encodePart(value: object): string {
 // Credit totals 10.00 (host and terminal); total sales 100.00.
 async function openStepThree(onExit: () => void = () => {}): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u1', role: 'CASHIER' })}.sig`;
-  useAuthStore.getState().signIn(token, 9);
+  useAuthStore.getState().signIn(token, 4);
+  seedOpenShift();
   await render(<DailyShiftScreen onExit={onExit} />);
 
   await page.getByLabelText('Credit Totals - Terminal').fill('10');
@@ -47,21 +50,23 @@ function byPath(suffix: string): Record<string, unknown> | undefined {
 }
 
 const posted: { url: string; body: Record<string, unknown> }[] = [];
+// Every request in order, so the close can be checked to come last.
+const calls: string[] = [];
 
-function stubApi(failPath?: string): void {
+// `failPath` makes that endpoint answer with `failStatus`.
+function stubApi(failPath?: string, failStatus = 500): void {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: string, init?: RequestInit) => {
       const url = String(input);
-      if (url.includes('/shifts/')) {
-        return Promise.resolve(
-          Response.json({ data: { id: 9, userId: 4 } }, { status: 200 }),
-        );
-      }
+      calls.push(url.split('/v1/')[1]);
       if (failPath && url.endsWith(failPath)) {
         return Promise.resolve(
-          Response.json({ message: 'Database down' }, { status: 500 }),
+          Response.json({ message: 'Database down' }, { status: failStatus }),
         );
+      }
+      if (url.endsWith('/close')) {
+        return Promise.resolve(Response.json({ data: {} }, { status: 200 }));
       }
       posted.push({ url, body: JSON.parse(String(init?.body)) });
       return Promise.resolve(Response.json({ data: {} }, { status: 201 }));
@@ -72,11 +77,13 @@ function stubApi(failPath?: string): void {
 describe('Payouts and Cash on Hand window (real browser)', () => {
   beforeEach(() => {
     posted.length = 0;
+    calls.length = 0;
     stubApi();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    resetShiftStore();
     useAuthStore.getState().signOut();
     useCashierShiftStore.setState({
       creditTotals: null,
@@ -139,6 +146,10 @@ describe('Payouts and Cash on Hand window (real browser)', () => {
       dailySummary: null,
       cashClose: null,
     });
+    // The shift ends only after the three tables are saved.
+    expect(calls.at(-1)).toBe('shifts/9/close');
+    expect(calls).toHaveLength(4);
+    expect(useShiftStore.getState().current).toEqual({ status: 'none' });
     expect(byPath('/credit-totals')).toMatchObject({
       shiftId: 9,
       userId: 4,
@@ -191,5 +202,43 @@ describe('Payouts and Cash on Hand window (real browser)', () => {
       'daily-summary-reports',
       'payouts',
     ]);
+  });
+
+  it('keeps the shift open when closing fails and the retry only closes', async () => {
+    let exited = false;
+    stubApi('/close');
+    await openStepThree(() => {
+      exited = true;
+    });
+    await page.getByLabelText('Total POS (Card Sales)').fill('10');
+    await fillRest('65');
+    await page.getByRole('button', { name: 'Save and Close' }).click();
+
+    await expect.element(page.getByText('Database down')).toBeVisible();
+    expect(exited).toBe(false);
+    expect(useShiftStore.getState().current.status).toBe('open');
+    expect(posted).toHaveLength(3);
+
+    calls.length = 0;
+    stubApi();
+    await page.getByRole('button', { name: 'Save and Close' }).click();
+    await vi.waitFor(() => expect(exited).toBe(true));
+    // The three tables are not posted again.
+    expect(posted).toHaveLength(3);
+    expect(calls).toEqual(['shifts/9/close']);
+  });
+
+  it('counts a table the API already holds as saved and still closes', async () => {
+    let exited = false;
+    stubApi('/credit-totals', 409);
+    await openStepThree(() => {
+      exited = true;
+    });
+    await page.getByLabelText('Total POS (Card Sales)').fill('10');
+    await fillRest('65');
+    await page.getByRole('button', { name: 'Save and Close' }).click();
+
+    await vi.waitFor(() => expect(exited).toBe(true));
+    expect(calls.at(-1)).toBe('shifts/9/close');
   });
 });

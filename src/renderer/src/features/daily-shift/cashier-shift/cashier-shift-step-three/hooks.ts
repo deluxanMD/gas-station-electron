@@ -1,13 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
-import { useAuthStore } from '@/features/auth/auth-store';
 import {
   buildSubmission,
-  fetchShiftOwnerId,
   saveCashierShift,
   SaveShiftError,
 } from '@/features/daily-shift/cashier-shift/api';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
+import { endShift, useOpenShift } from '@/features/shift/hooks';
 import {
   formatCentsAsAmount,
   isValidAmount,
@@ -55,7 +54,7 @@ export function useCashCloseForm({
       }
     : EMPTY_CASH_CLOSE;
 
-  const shiftId = useAuthStore((s) => s.shiftId);
+  const shift = useOpenShift();
   const savedTables = useCashierShiftStore((s) => s.savedTables);
   const resetShift = useCashierShiftStore((s) => s.resetShift);
   const setSaving = useCashierShiftStore((s) => s.setSaving);
@@ -136,24 +135,27 @@ export function useCashCloseForm({
 
     // Nothing reaches the database before this point: the three steps only
     // fill the in-memory store.
-    if (shiftId === null || creditTotals === null || dailySummary === null) {
+    if (shift === null || creditTotals === null || dailySummary === null) {
       form.setError('root', {
         message:
-          'Shift data is missing. Please sign in again and complete all steps.',
+          'Shift data is missing. Please start a shift and complete all steps.',
       });
       return;
     }
 
     setSaving(true);
     try {
-      const userId = await fetchShiftOwnerId(shiftId);
-      await saveCashierShift(
+      const saved = await saveCashierShift(
         buildSubmission(
-          { shiftId, userId },
+          { shiftId: shift.id, userId: shift.userId },
           { creditTotals, dailySummary, cashClose },
         ),
         savedTables,
       );
+      // Remember the tables now saved: if closing fails, the retry only closes.
+      setSavedTables(saved);
+      // The shift ends only after all three tables are saved.
+      await endShift(shift.id);
     } catch (error) {
       setSaving(false);
       if (error instanceof SaveShiftError) setSavedTables(error.saved);
@@ -165,7 +167,7 @@ export function useCashCloseForm({
       });
       return;
     }
-    // Saved: clear the in-memory data so the next shift starts with empty forms.
+    // Saved and closed: clear the in-memory data so the next shift starts empty.
     resetShift();
     onNext();
   });

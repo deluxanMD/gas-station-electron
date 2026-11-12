@@ -1,3 +1,4 @@
+import { ApiError, apiRequest } from '@/lib/api';
 import type {
   CashierShiftSubmission,
   CashCloseData,
@@ -6,48 +7,13 @@ import type {
   PayoutType,
 } from './types';
 
-const API_VERSION = 'v1';
-
 const ENDPOINTS = {
-  shifts: 'shifts',
   creditTotals: 'credit-totals',
   dailySummary: 'daily-summary-reports',
   payouts: 'payouts',
 } as const;
 
 const toDollars = (cents: number): number => cents / 100;
-
-function url(path: string): string {
-  return `${import.meta.env.RENDERER_VITE_API_BASE_URL}/${API_VERSION}/${path}`;
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetch(url(path), {
-      ...init,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch {
-    throw new Error('Unable to reach the server. Please try again.');
-  }
-  if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-    throw new Error(body.message ?? 'Saving the shift failed.');
-  }
-  return (await response.json()) as T;
-}
-
-// The API keys rows by its numeric user id, which the token does not carry;
-// the shift row does.
-export async function fetchShiftOwnerId(shiftId: number): Promise<number> {
-  const body = await request<{ data: { userId: number } }>(
-    `${ENDPOINTS.shifts}/${shiftId}`,
-  );
-  return body.data.userId;
-}
 
 const PAYOUT_FIELD: Record<
   PayoutType,
@@ -137,13 +103,22 @@ const TABLE_ENDPOINT: Record<Table, string> = {
   payouts: ENDPOINTS.payouts,
 };
 
-const post = (table: Table, body: unknown): Promise<unknown> =>
-  request(TABLE_ENDPOINT[table], {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+// 409 means the API already holds this table for the shift (an earlier try got
+// through but its answer was lost), so it counts as saved.
+async function post(table: Table, body: unknown): Promise<void> {
+  try {
+    await apiRequest(
+      TABLE_ENDPOINT[table],
+      { method: 'POST', body: JSON.stringify(body) },
+      'Saving the shift failed.',
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) return;
+    throw error;
+  }
+}
 
-// Posts the three tables in parallel. `alreadySaved` lets a retry skip the
+// Posts the three tables in parallel (the caller then closes the shift). `alreadySaved` lets a retry skip the
 // tables that went through the first time, so nothing is inserted twice.
 // Resolves with every table now saved; throws if any is still missing.
 export async function saveCashierShift(
