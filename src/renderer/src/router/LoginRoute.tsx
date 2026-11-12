@@ -12,6 +12,11 @@ export function LoginRoute(): JSX.Element {
   return user ? (
     <Navigate to={ROUTES.home} replace />
   ) : (
-    <LoginScreen onSubmit={async (values) => signIn(await login(values))} />
+    <LoginScreen
+      onSubmit={async (values) => {
+        const { token, shiftId } = await login(values);
+        signIn(token, shiftId);
+      }}
+    />
   );
 }

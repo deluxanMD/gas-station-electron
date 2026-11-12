@@ -1,9 +1,13 @@
-import type { ErrorResponse, LoginResponse } from '@/features/auth/types';
+import type {
+  ErrorResponse,
+  LoginResponse,
+  LoginResult,
+} from '@/features/auth/types';
 import type { LoginValues } from '@/features/auth/login/types';
 
 const API_VERSION = 'v1';
 
-export async function login(values: LoginValues): Promise<string> {
+export async function login(values: LoginValues): Promise<LoginResult> {
   let response: Response;
   try {
     response = await fetch(
@@ -23,5 +27,6 @@ export async function login(values: LoginValues): Promise<string> {
     throw new Error(body.message ?? 'Sign in failed. Please try again.');
   }
 
-  return ((await response.json()) as LoginResponse).data.token;
+  const { token, shiftId } = ((await response.json()) as LoginResponse).data;
+  return { token, shiftId };
 }

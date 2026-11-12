@@ -17,7 +17,7 @@ function encodePart(value: object): string {
 
 function signInAs(role: string): void {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u1', role })}.sig`;
-  useAuthStore.getState().signIn(token);
+  useAuthStore.getState().signIn(token, 1);
 }
 
 describe('DailyShiftScreen (real browser)', () => {

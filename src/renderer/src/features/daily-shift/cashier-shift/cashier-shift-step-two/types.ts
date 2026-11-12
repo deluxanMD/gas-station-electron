@@ -1,9 +1,11 @@
 import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
-import type { dailySummarySchema } from './schema';
+import type { createDailySummarySchema } from './schema';
 
 // Amounts stay as the text the cashier typed; they become cents on submit.
-export type DailySummaryValues = z.infer<typeof dailySummarySchema>;
+export type DailySummaryValues = z.infer<
+  ReturnType<typeof createDailySummarySchema>
+>;
 
 export type DailySummaryAmountField =
   'fuelSales' | 'itemSales' | 'gst' | 'hst' | 'pennyRounding' | 'totalSales';

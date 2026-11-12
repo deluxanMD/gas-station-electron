@@ -10,21 +10,29 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      signIn: (token) => {
+      shiftId: null,
+      signIn: (token, shiftId = null) => {
         const user = decodeToken(token);
-        set(user ? { token, user } : { token: null, user: null });
+        set(
+          user
+            ? { token, user, shiftId }
+            : { token: null, user: null, shiftId: null },
+        );
       },
-      signOut: () => set({ token: null, user: null }),
+      signOut: () => set({ token: null, user: null, shiftId: null }),
     }),
     {
       name: AUTH_STORAGE_KEY,
-      partialize: (state) => ({ token: state.token }),
+      partialize: (state) => ({ token: state.token, shiftId: state.shiftId }),
       merge: (persisted, current) => {
-        const token = (persisted as { token?: string | null } | undefined)
-          ?.token;
+        const saved = persisted as
+          { token?: string | null; shiftId?: number | null } | undefined;
+        const token = saved?.token;
         if (!token) return current;
         const user = decodeToken(token);
-        return user ? { ...current, token, user } : current;
+        return user
+          ? { ...current, token, user, shiftId: saved?.shiftId ?? null }
+          : current;
       },
     },
   ),
