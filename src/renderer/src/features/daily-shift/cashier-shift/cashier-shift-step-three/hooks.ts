@@ -57,6 +57,7 @@ export function useCashCloseForm({
 
   const shiftId = useAuthStore((s) => s.shiftId);
   const savedTables = useCashierShiftStore((s) => s.savedTables);
+  const resetShift = useCashierShiftStore((s) => s.resetShift);
   const setSaving = useCashierShiftStore((s) => s.setSaving);
   const setSavedTables = useCashierShiftStore((s) => s.setSavedTables);
 
@@ -164,7 +165,8 @@ export function useCashCloseForm({
       });
       return;
     }
-    setSaving(false);
+    // Saved: clear the in-memory data so the next shift starts with empty forms.
+    resetShift();
     onNext();
   });
 

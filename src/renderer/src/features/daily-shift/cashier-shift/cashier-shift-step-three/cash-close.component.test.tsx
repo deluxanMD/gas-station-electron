@@ -131,18 +131,14 @@ describe('Payouts and Cash on Hand window (real browser)', () => {
     await fillRest('57.75');
     await page.getByRole('button', { name: 'Save and Close' }).click();
 
-    expect(useCashierShiftStore.getState().cashClose).toEqual({
-      totalPosCents: 1000,
-      posMismatch: false,
-      payouts: [{ description: 'Bread', type: 'vendor', amountCents: 725 }],
-      lottoWinnerCents: 500,
-      giftCertificatesCents: 0,
-      redemptionsCents: 0,
-      safedropsCents: 2000,
-      cashOnHandCents: 5775,
-    });
     await vi.waitFor(() => expect(exited).toBe(true));
 
+    // All three steps are cleared once the shift is saved.
+    expect(useCashierShiftStore.getState()).toMatchObject({
+      creditTotals: null,
+      dailySummary: null,
+      cashClose: null,
+    });
     expect(byPath('/credit-totals')).toMatchObject({
       shiftId: 9,
       userId: 4,

@@ -84,6 +84,8 @@ export interface CashierShiftState {
   // Tables already written by a partly failed save; a retry skips them.
   savedTables: ReadonlySet<keyof CashierShiftSubmission>;
   setSavedTables: (tables: ReadonlySet<keyof CashierShiftSubmission>) => void;
+  // Clears all three steps once the shift is saved.
+  resetShift: () => void;
 }
 
 // Request bodies for the three tables written when the shift is saved.
