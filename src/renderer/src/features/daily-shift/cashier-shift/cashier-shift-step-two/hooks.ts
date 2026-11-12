@@ -6,8 +6,9 @@ import {
   parseAmountToCents,
   parseSignedAmountToCents,
 } from '@/lib/money';
-import { DEFAULT_SHIFT_NUMBER, EMPTY_DAILY_SUMMARY } from './constants';
-import { dailySummarySchema } from './schema';
+import { useAuthStore } from '@/features/auth/auth-store';
+import { EMPTY_DAILY_SUMMARY } from './constants';
+import { createDailySummarySchema } from './schema';
 import type {
   DailySummaryValues,
   UseDailySummaryFormOptions,
@@ -17,6 +18,8 @@ import type {
 export function useDailySummaryForm({
   onNext,
 }: UseDailySummaryFormOptions): UseDailySummaryFormReturn {
+  const shiftId = useAuthStore((s) => s.shiftId);
+  const defaultShiftNumber = shiftId === null ? '' : String(shiftId);
   const saved = useCashierShiftStore((s) => s.dailySummary);
   const setDailySummary = useCashierShiftStore((s) => s.setDailySummary);
 
@@ -33,15 +36,15 @@ export function useDailySummaryForm({
         pennyRounding: formatCentsAsAmount(saved.pennyRoundingCents),
         totalSales: formatCentsAsAmount(saved.totalSalesCents),
       }
-    : EMPTY_DAILY_SUMMARY;
+    : { ...EMPTY_DAILY_SUMMARY, shiftNumber: defaultShiftNumber };
 
   const form = useForm<DailySummaryValues>({
-    resolver: zodResolver(dailySummarySchema),
+    resolver: zodResolver(createDailySummarySchema(defaultShiftNumber)),
     defaultValues,
   });
 
   const shiftNumber = useWatch({ control: form.control, name: 'shiftNumber' });
-  const needsChangeReason = shiftNumber.trim() !== String(DEFAULT_SHIFT_NUMBER);
+  const needsChangeReason = shiftNumber.trim() !== defaultShiftNumber;
 
   const handleSubmit = form.handleSubmit((values) => {
     const shiftNumber = Number(values.shiftNumber);
@@ -50,7 +53,9 @@ export function useDailySummaryForm({
       dayEndTime: values.dayEndTime,
       shiftNumber,
       shiftChangeReason:
-        shiftNumber === DEFAULT_SHIFT_NUMBER ? '' : values.shiftChangeReason,
+        String(shiftNumber) === defaultShiftNumber
+          ? ''
+          : values.shiftChangeReason,
       fuelSalesCents: parseAmountToCents(values.fuelSales),
       itemSalesCents: parseAmountToCents(values.itemSales),
       gstCents: parseAmountToCents(values.gst),

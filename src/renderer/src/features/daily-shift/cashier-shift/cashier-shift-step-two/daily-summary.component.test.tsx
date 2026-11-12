@@ -11,7 +11,7 @@ function encodePart(value: object): string {
 
 async function openStepTwo(): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u1', role: 'CASHIER' })}.sig`;
-  useAuthStore.getState().signIn(token);
+  useAuthStore.getState().signIn(token, 7);
   await render(<DailyShiftScreen onExit={() => {}} />);
 
   await page.getByLabelText('Credit Totals - Terminal').fill('1');
@@ -54,10 +54,15 @@ describe('Daily Summary window (real browser)', () => {
     await expect.element(page.getByText('Step 2 of 3')).toBeVisible();
   });
 
+  it('prefills the shift number with the shift id', async () => {
+    await openStepTwo();
+    await expect.element(page.getByLabelText('Shift Number')).toHaveValue('7');
+  });
+
   it('requires a reason when the shift number is changed', async () => {
     await openStepTwo();
     await fillSummary('157.48');
-    await page.getByLabelText('Shift Number').fill('2');
+    await page.getByLabelText('Shift Number').fill('8');
     await page.getByRole('button', { name: 'Next' }).click();
 
     await expect.element(page.getByText(/Give a reason/)).toBeVisible();
@@ -75,7 +80,7 @@ describe('Daily Summary window (real browser)', () => {
     expect(useCashierShiftStore.getState().dailySummary).toEqual({
       dayEndDate: '2026-11-09',
       dayEndTime: '23:30',
-      shiftNumber: 1,
+      shiftNumber: 7,
       shiftChangeReason: '',
       fuelSalesCents: 10_000,
       itemSalesCents: 5000,
