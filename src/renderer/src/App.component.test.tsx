@@ -12,12 +12,33 @@ function makeToken(role = 'MANAGER'): string {
   return `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role })}.signature`;
 }
 
-function mockSuccessfulLogin(): void {
+const OPEN_SHIFT = {
+  id: 9,
+  userId: 4,
+  startTime: '2026-11-09T14:00:00.000Z',
+  endTime: null,
+};
+
+// Answers login, the current-shift lookup and any other call by URL.
+function stubApi(currentShift: object | null = null, role = 'MANAGER'): void {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ data: { token: makeToken() } }),
+    vi.fn((input: string) => {
+      const url = String(input);
+      let data: object | null = {};
+      if (url.includes('/auth/login')) data = { token: makeToken(role), id: 4 };
+      else if (url.includes('/shifts/current')) data = currentShift;
+      return Promise.resolve(Response.json({ data }));
+    }),
+  );
+}
+
+function saveSession(role = 'MANAGER'): void {
+  localStorage.setItem(
+    AUTH_STORAGE_KEY,
+    JSON.stringify({
+      state: { token: makeToken(role), dbUserId: 4 },
+      version: 0,
     }),
   );
 }
@@ -38,7 +59,7 @@ describe('App navigation (real browser)', () => {
   });
 
   it('navigates to the home screen after login and back on sign out', async () => {
-    mockSuccessfulLogin();
+    stubApi();
     await render(<App />);
     await submitCredentials();
 
@@ -49,10 +70,8 @@ describe('App navigation (real browser)', () => {
   });
 
   it('opens the home screen on load when a token is saved', async () => {
-    localStorage.setItem(
-      AUTH_STORAGE_KEY,
-      JSON.stringify({ state: { token: makeToken() }, version: 0 }),
-    );
+    stubApi();
+    saveSession();
     await useAuthStore.persist.rehydrate();
 
     await render(<App />);
@@ -60,18 +79,40 @@ describe('App navigation (real browser)', () => {
     await expect.element(page.getByText('Welcome, station1')).toBeVisible();
   });
 
-  it('opens daily shift from the home card and returns home', async () => {
-    localStorage.setItem(
-      AUTH_STORAGE_KEY,
-      JSON.stringify({ state: { token: makeToken('CASHIER') }, version: 0 }),
-    );
+  it('opens daily shift from the home card after confirming, and returns home', async () => {
+    stubApi(OPEN_SHIFT, 'CASHIER');
+    saveSession('CASHIER');
     await useAuthStore.persist.rehydrate();
 
     await render(<App />);
     await page.getByRole('button', { name: 'Daily Shift' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
     await expect.element(page.getByText('Step 1 of 3')).toBeVisible();
 
     await page.getByRole('button', { name: 'Back to home' }).click();
+    await expect.element(page.getByText('Welcome, station1')).toBeVisible();
+  });
+
+  it('offers to start a shift when the user has none open', async () => {
+    stubApi(null, 'CASHIER');
+    saveSession('CASHIER');
+    await useAuthStore.persist.rehydrate();
+
+    await render(<App />);
+
+    await expect
+      .element(page.getByRole('button', { name: 'Start shift' }))
+      .toBeVisible();
+  });
+
+  it('sends a user without an open shift away from the daily shift page', async () => {
+    stubApi(null, 'CASHIER');
+    saveSession('CASHIER');
+    await useAuthStore.persist.rehydrate();
+    window.location.hash = '#/daily-shift';
+
+    await render(<App />);
+
     await expect.element(page.getByText('Welcome, station1')).toBeVisible();
   });
 

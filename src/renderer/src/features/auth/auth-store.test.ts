@@ -42,17 +42,33 @@ describe('useAuthStore', () => {
     expect(useAuthStore.getState()).toMatchObject({ token: null, user: null });
   });
 
-  it('persists only the token and shift id', () => {
+  it('persists only the token and user id', () => {
     useAuthStore
       .getState()
       .signIn(makeToken({ sub: 'alice', role: 'MANAGER' }), 7);
 
     const saved = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? '{}');
 
-    expect(Object.keys(saved.state)).toEqual(['token', 'shiftId']);
+    expect(Object.keys(saved.state)).toEqual(['token', 'dbUserId']);
   });
 
   it('restores the token and decodes the user on load', async () => {
+    const token = makeToken({ sub: 'alice', role: 'MANAGER' });
+    localStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({ state: { token, dbUserId: 7 }, version: 0 }),
+    );
+
+    await useAuthStore.persist.rehydrate();
+
+    expect(useAuthStore.getState()).toMatchObject({
+      token,
+      dbUserId: 7,
+      user: { userId: 'alice', userRole: 'MANAGER' },
+    });
+  });
+
+  it('drops a saved session that has no user id, so the user signs in again', async () => {
     const token = makeToken({ sub: 'alice', role: 'MANAGER' });
     localStorage.setItem(
       AUTH_STORAGE_KEY,
@@ -61,10 +77,7 @@ describe('useAuthStore', () => {
 
     await useAuthStore.persist.rehydrate();
 
-    expect(useAuthStore.getState()).toMatchObject({
-      token,
-      user: { userId: 'alice', userRole: 'MANAGER' },
-    });
+    expect(useAuthStore.getState()).toMatchObject({ token: null, user: null });
   });
 
   it('ignores a saved token that is expired or malformed', async () => {

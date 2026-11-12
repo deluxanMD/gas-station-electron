@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 
@@ -11,7 +12,8 @@ function encodePart(value: object): string {
 
 async function openStepTwo(): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u1', role: 'CASHIER' })}.sig`;
-  useAuthStore.getState().signIn(token, 7);
+  useAuthStore.getState().signIn(token, 4);
+  seedOpenShift({ id: 7 });
   await render(<DailyShiftScreen onExit={() => {}} />);
 
   await page.getByLabelText('Credit Totals - Terminal').fill('1');
@@ -36,6 +38,7 @@ async function fillSummary(totalSales: string): Promise<void> {
 
 describe('Daily Summary window (real browser)', () => {
   afterEach(() => {
+    resetShiftStore();
     useAuthStore.getState().signOut();
     useCashierShiftStore.setState({
       creditTotals: null,

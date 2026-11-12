@@ -14,8 +14,8 @@ export function LoginRoute(): JSX.Element {
   ) : (
     <LoginScreen
       onSubmit={async (values) => {
-        const { token, shiftId } = await login(values);
-        signIn(token, shiftId);
+        const { token, id } = await login(values);
+        signIn(token, id);
       }}
     />
   );

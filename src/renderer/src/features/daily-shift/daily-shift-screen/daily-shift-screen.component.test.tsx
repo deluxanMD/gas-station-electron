@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
@@ -18,10 +19,12 @@ function encodePart(value: object): string {
 function signInAs(role: string): void {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u1', role })}.sig`;
   useAuthStore.getState().signIn(token, 1);
+  seedOpenShift();
 }
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
+    resetShiftStore();
     useManagerShiftStore.setState({
       scratchTickets: null,
       lottoReports: null,
