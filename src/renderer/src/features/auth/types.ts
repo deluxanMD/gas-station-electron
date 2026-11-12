@@ -7,7 +7,12 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  data: { token: string };
+  data: { token: string; shiftId: number };
+}
+
+export interface LoginResult {
+  token: string;
+  shiftId: number;
 }
 
 export interface ErrorResponse {
@@ -17,7 +22,9 @@ export interface ErrorResponse {
 export interface AuthState {
   token: string | null;
   user: AuthUser | null;
-  signIn: (token: string) => void;
+  // The open shift the API assigned at login; null if unknown (old session).
+  shiftId: number | null;
+  signIn: (token: string, shiftId?: number | null) => void;
   signOut: () => void;
 }
 

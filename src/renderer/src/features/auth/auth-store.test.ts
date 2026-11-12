@@ -42,14 +42,14 @@ describe('useAuthStore', () => {
     expect(useAuthStore.getState()).toMatchObject({ token: null, user: null });
   });
 
-  it('persists only the token', () => {
+  it('persists only the token and shift id', () => {
     useAuthStore
       .getState()
-      .signIn(makeToken({ sub: 'alice', role: 'MANAGER' }));
+      .signIn(makeToken({ sub: 'alice', role: 'MANAGER' }), 7);
 
     const saved = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? '{}');
 
-    expect(Object.keys(saved.state)).toEqual(['token']);
+    expect(Object.keys(saved.state)).toEqual(['token', 'shiftId']);
   });
 
   it('restores the token and decodes the user on load', async () => {

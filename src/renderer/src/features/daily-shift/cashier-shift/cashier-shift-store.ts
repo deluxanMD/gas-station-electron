@@ -9,4 +9,8 @@ export const useCashierShiftStore = create<CashierShiftState>()((set) => ({
   setDailySummary: (dailySummary) => set({ dailySummary }),
   cashClose: null,
   setCashClose: (cashClose) => set({ cashClose }),
+  saving: false,
+  setSaving: (saving) => set({ saving }),
+  savedTables: new Set(),
+  setSavedTables: (savedTables) => set({ savedTables }),
 }));

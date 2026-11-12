@@ -142,6 +142,11 @@ export function CashClose({ formId, onNext }: CashCloseProps): JSX.Element {
             />
           ))}
         </div>
+        {form.formState.errors.root ? (
+          <p role="alert" className="text-sm text-destructive">
+            {form.formState.errors.root.message}
+          </p>
+        ) : null}
       </form>
     </Form>
   );

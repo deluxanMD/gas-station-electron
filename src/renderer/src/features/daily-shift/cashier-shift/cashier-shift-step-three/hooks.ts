@@ -1,5 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
+import { useAuthStore } from '@/features/auth/auth-store';
+import {
+  buildSubmission,
+  fetchShiftOwnerId,
+  saveCashierShift,
+  SaveShiftError,
+} from '@/features/daily-shift/cashier-shift/api';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import {
   formatCentsAsAmount,
@@ -48,6 +55,11 @@ export function useCashCloseForm({
       }
     : EMPTY_CASH_CLOSE;
 
+  const shiftId = useAuthStore((s) => s.shiftId);
+  const savedTables = useCashierShiftStore((s) => s.savedTables);
+  const setSaving = useCashierShiftStore((s) => s.setSaving);
+  const setSavedTables = useCashierShiftStore((s) => s.setSavedTables);
+
   const form = useForm<CashCloseValues>({
     resolver: zodResolver(cashCloseSchema),
     defaultValues,
@@ -68,7 +80,9 @@ export function useCashCloseForm({
     (toCents(totalPos) !== creditTotals.creditHostCents ||
       toCents(totalPos) !== creditTotals.creditTerminalCents);
 
-  const handleSubmit = form.handleSubmit((values) => {
+  const handleSubmit = form.handleSubmit(async (values) => {
+    // A second click while the first save is in flight must not double-post.
+    if (useCashierShiftStore.getState().saving) return;
     const totalPosCents = parseAmountToCents(values.totalPos);
     const payoutEntries = values.payouts.flatMap((row) =>
       row.type === ''
@@ -107,7 +121,7 @@ export function useCashCloseForm({
       }
     }
 
-    setCashClose({
+    const cashClose = {
       totalPosCents,
       posMismatch,
       payouts: payoutEntries,
@@ -116,7 +130,41 @@ export function useCashCloseForm({
       redemptionsCents,
       safedropsCents,
       cashOnHandCents,
-    });
+    };
+    setCashClose(cashClose);
+
+    // Nothing reaches the database before this point: the three steps only
+    // fill the in-memory store.
+    if (shiftId === null || creditTotals === null || dailySummary === null) {
+      form.setError('root', {
+        message:
+          'Shift data is missing. Please sign in again and complete all steps.',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const userId = await fetchShiftOwnerId(shiftId);
+      await saveCashierShift(
+        buildSubmission(
+          { shiftId, userId },
+          { creditTotals, dailySummary, cashClose },
+        ),
+        savedTables,
+      );
+    } catch (error) {
+      setSaving(false);
+      if (error instanceof SaveShiftError) setSavedTables(error.saved);
+      form.setError('root', {
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Saving the shift failed. Please try again.',
+      });
+      return;
+    }
+    setSaving(false);
     onNext();
   });
 
