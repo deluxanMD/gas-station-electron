@@ -1,8 +1,7 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/utils';
 import type { ShiftStatusProps } from './types';
-
-const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
 
 export function ShiftStatus({
   current,
@@ -45,8 +44,7 @@ export function ShiftStatus({
     case 'open':
       return (
         <span className="text-sm text-sidebar-foreground/80">
-          Shift started at{' '}
-          {timeFormat.format(new Date(current.shift.startTime))}
+          Shift started at {formatDateTime(current.shift.startTime)}
         </span>
       );
   }
