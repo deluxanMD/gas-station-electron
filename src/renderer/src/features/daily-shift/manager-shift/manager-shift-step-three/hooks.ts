@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { useOpenShift } from '@/features/shift/hooks';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import {
   buildScratchTicketsRequest,
@@ -41,6 +42,7 @@ export function useScratchTicketsForm({
   onNext,
 }: UseScratchTicketsFormOptions): UseScratchTicketsFormReturn {
   const saved = useManagerShiftStore((s) => s.scratchTickets);
+  const openShift = useOpenShift();
   const setScratchTickets = useManagerShiftStore((s) => s.setScratchTickets);
 
   const defaultValues: ScratchTicketsValues = saved
@@ -52,7 +54,11 @@ export function useScratchTicketsForm({
           activations: String(row.activationsCount),
         })),
       }
-    : EMPTY_SCRATCH_TICKETS;
+    : {
+        ...EMPTY_SCRATCH_TICKETS,
+        // The sheet is for the shift in progress; still editable.
+        shiftNumber: openShift ? String(openShift.id) : '',
+      };
 
   const dbUserId = useAuthStore((s) => s.dbUserId);
   const [saveError, setSaveError] = useState<string | null>(null);

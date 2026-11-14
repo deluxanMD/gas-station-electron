@@ -3,6 +3,8 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
+import { useShiftStore } from '@/features/shift/shift-store';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from './constants';
 import { stubScratchTicketApi } from './test-utils';
@@ -12,6 +14,9 @@ function encodePart(value: object): string {
 }
 
 async function openScratchStep(): Promise<void> {
+  // Shift # is filled from, and locked to, the open shift.
+  if (useShiftStore.getState().current.status !== 'open')
+    seedOpenShift({ id: 2 });
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
   useAuthStore.getState().signIn(token, 3);
   await render(<DailyShiftScreen onExit={() => {}} />);
@@ -30,6 +35,7 @@ async function fillAllRows(close: string, activations: string): Promise<void> {
 describe('Instant Scratch Tickets window (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    resetShiftStore();
     useAuthStore.getState().signOut();
     useManagerShiftStore.setState({ scratchTickets: null });
     localStorage.clear();
@@ -50,7 +56,6 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   it('rejects a Close above Open + Activations', async () => {
     stubScratchTicketApi();
     await openScratchStep();
-    await page.getByLabelText('Shift #').fill('1');
     await fillAllRows('0', '0');
     await page.getByLabelText('$5 close').fill('3');
     await page.getByRole('button', { name: 'Next' }).click();
@@ -64,7 +69,6 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   it('calculates Sold and Amount, saves and moves on', async () => {
     const fetchMock = stubScratchTicketApi();
     await openScratchStep();
-    await page.getByLabelText('Shift #').fill('2');
     await fillAllRows('0', '0');
     // Open 10 + 5 activated - 3 left = 12 sold; 12 x $5 = $60.
     await page.getByLabelText('$5 open').fill('10');
@@ -113,6 +117,26 @@ describe('Instant Scratch Tickets window (real browser)', () => {
     });
   });
 
+  it('prefills the shift number with the current shift id', async () => {
+    const fetchMock = stubScratchTicketApi();
+    seedOpenShift({ id: 9 });
+    await openScratchStep();
+
+    await expect.element(page.getByLabelText('Shift #')).toHaveValue('9');
+    await expect.element(page.getByLabelText('Shift #')).toBeDisabled();
+
+    await fillAllRows('0', '0');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith('/scratch-tickets') && init?.method === 'POST',
+    );
+    expect(JSON.parse(post?.[1].body as string)).toMatchObject({
+      shiftNumber: 9,
+    });
+  });
+
   it('prefills Open from the previous report', async () => {
     stubScratchTicketApi({
       latest: Response.json({
@@ -148,7 +172,6 @@ describe('Instant Scratch Tickets window (real browser)', () => {
       ),
     });
     await openScratchStep();
-    await page.getByLabelText('Shift #').fill('1');
     await fillAllRows('0', '0');
     await page.getByRole('button', { name: 'Next' }).click();
 
@@ -162,7 +185,6 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   it('does not save again when returning with unchanged values', async () => {
     const fetchMock = stubScratchTicketApi();
     await openScratchStep();
-    await page.getByLabelText('Shift #').fill('1');
     await fillAllRows('0', '0');
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 4 of 5')).toBeVisible();

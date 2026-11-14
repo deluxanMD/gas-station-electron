@@ -20,7 +20,6 @@ async function openReconciliationStep(onExit: () => void): Promise<void> {
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
 
-  await page.getByLabelText('Shift #').fill('1');
   for (const denomination of SCRATCH_DENOMINATIONS) {
     await page.getByLabelText(`$${denomination} close`).fill('0');
     await page.getByLabelText(`$${denomination} activations`).fill('0');

@@ -174,6 +174,7 @@ describe('DailyShiftScreen (real browser)', () => {
 
   it('walks a manager through the five steps', async () => {
     stubScratchTicketApi();
+    seedOpenShift();
     signInAs('MANAGER');
     await render(<DailyShiftScreen onExit={() => {}} />);
 
@@ -185,7 +186,6 @@ describe('DailyShiftScreen (real browser)', () => {
         await page.getByLabelText('Bull-LottoWinner').fill('0');
       }
       if (step === 3) {
-        await page.getByLabelText('Shift #').fill('1');
         for (const denomination of SCRATCH_DENOMINATIONS) {
           await page.getByLabelText(`$${denomination} close`).fill('0');
           await page.getByLabelText(`$${denomination} activations`).fill('0');
