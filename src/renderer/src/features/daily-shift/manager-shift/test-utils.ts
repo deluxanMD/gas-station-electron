@@ -7,15 +7,17 @@ export interface ManagerShiftApiStub {
   // GET /lotto-reports/latest; a null slip means none saved yet.
   lottoLatest?: Response;
   lottoSave?: Response;
+  reconciliationSave?: Response;
 }
 
 // Answers what the manager flow calls: today's shifts (step 1), the scratch
-// ticket and lotto report endpoints, and closing the shift; anything else fails the test.
+// ticket, lotto report and lotto reconciliation endpoints, and closing the shift; anything else fails the test.
 export function stubManagerShiftApi({
   scratchLatest = Response.json({ data: null }),
   scratchSave = Response.json({ data: { id: 1 } }, { status: 201 }),
   lottoLatest = Response.json({ data: null }),
   lottoSave = Response.json({ data: { id: 1 } }, { status: 201 }),
+  reconciliationSave = Response.json({ data: { id: 1 } }, { status: 201 }),
 }: ManagerShiftApiStub = {}): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     const post = init?.method === 'POST';
@@ -30,6 +32,9 @@ export function stubManagerShiftApi({
     }
     if (url.endsWith('/lotto-reports') && post) {
       return Promise.resolve(lottoSave.clone());
+    }
+    if (url.endsWith('/lotto-reconciliations') && post) {
+      return Promise.resolve(reconciliationSave.clone());
     }
     if (/\/shifts\/\d+\/close$/.test(url)) {
       return Promise.resolve(Response.json({ data: {} }));

@@ -51,6 +51,21 @@ export interface LottoReconciliationFigures {
   summaryTotal: number;
 }
 
+export interface LottoReconciliationRequest {
+  shiftId: number;
+  userId: number;
+  bullock: number;
+  bullPayouts: number;
+  bullLottoWinner: number;
+  lottoNet: number;
+  redeemNet: number;
+  activationsNet: number;
+  cashNet: number;
+  total: number;
+  // Null when the over/short is not attributed yet.
+  attribution: string | null;
+}
+
 export interface UseLottoReconciliationFormOptions {
   onNext: () => void;
 }
@@ -63,4 +78,5 @@ export interface UseLottoReconciliationFormReturn {
   figures: LottoReconciliationFigures;
   // Over/short exists but is not attributed yet.
   needsAttribution: boolean;
+  saveError: string | null;
 }

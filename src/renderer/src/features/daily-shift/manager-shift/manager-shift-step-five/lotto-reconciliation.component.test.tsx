@@ -13,7 +13,11 @@ function encodePart(value: object): string {
 }
 
 // Walks steps 1-4: $5 tickets sold 12 ($60, $25 activated) and lotto slips.
-async function openReconciliationStep(onExit: () => void): Promise<void> {
+async function openReconciliationStep(
+  onExit: () => void,
+  stub: Parameters<typeof stubManagerShiftApi>[0] = {},
+): Promise<void> {
+  stubManagerShiftApi(stub);
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
   useAuthStore.getState().signIn(token, 3);
   await render(<DailyShiftScreen onExit={onExit} />);
@@ -46,7 +50,6 @@ async function openReconciliationStep(onExit: () => void): Promise<void> {
 describe('Lotto Reconciliation window (real browser)', () => {
   beforeEach(() => {
     seedOpenShift();
-    stubManagerShiftApi();
   });
 
   afterEach(() => {
@@ -124,6 +127,9 @@ describe('Lotto Reconciliation window (real browser)', () => {
       bullockCents: 80_000,
       bullPayoutsCents: 10_000,
       bullLottoWinnerCents: 5000,
+      lottoNetCents: 6000,
+      redeemNetCents: 17_000,
+      activationsNetCents: 0,
       cashNetCents: -23_000,
       attribution: '',
       totalCents: 0,
@@ -149,6 +155,89 @@ describe('Lotto Reconciliation window (real browser)', () => {
     await page.getByRole('button', { name: 'Post and Close' }).click();
 
     await expect.element(page.getByText('Required').first()).toBeVisible();
+    expect(useManagerShiftStore.getState().lottoReconciliation).toBeNull();
+  });
+
+  it('posts the figures in cents with the open shift and user', async () => {
+    let exited = false;
+    await openReconciliationStep(() => {
+      exited = true;
+    });
+    await page.getByLabelText('Bullock').fill('800');
+    await page.getByLabelText('Bull-Payouts').fill('100');
+    await page.getByLabelText('Bull-LottoWinner').fill('50');
+    await page.getByLabelText('Cash Net').fill('-230');
+    await page.getByRole('combobox').selectOptions('previous-day');
+    await page.getByRole('button', { name: 'Post and Close' }).click();
+    await vi.waitFor(() => expect(exited).toBe(true));
+
+    const post = vi
+      .mocked(fetch)
+      .mock.calls.find(
+        ([url, init]) =>
+          String(url).endsWith('/lotto-reconciliations') &&
+          init?.method === 'POST',
+      );
+    expect(JSON.parse(post?.[1]?.body as string)).toEqual({
+      shiftId: 9,
+      userId: 3,
+      bullock: 80_000,
+      bullPayouts: 10_000,
+      bullLottoWinner: 5000,
+      lottoNet: 6000,
+      redeemNet: 17_000,
+      activationsNet: 0,
+      cashNet: -23_000,
+      total: 0,
+      attribution: 'PREVIOUS_DAY',
+    });
+  });
+
+  it('sends no attribution when none is chosen', async () => {
+    let exited = false;
+    await openReconciliationStep(() => {
+      exited = true;
+    });
+    await page.getByLabelText('Bullock').fill('0');
+    await page.getByLabelText('Bull-Payouts').fill('0');
+    await page.getByLabelText('Bull-LottoWinner').fill('0');
+    await page.getByRole('button', { name: 'Post and Close' }).click();
+    await vi.waitFor(() => expect(exited).toBe(true));
+
+    const post = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) =>
+        String(url).endsWith('/lotto-reconciliations'),
+      );
+    expect(JSON.parse(post?.[1]?.body as string).attribution).toBeNull();
+  });
+
+  it('stays on the step and does not close the shift when saving fails', async () => {
+    let exited = false;
+    await openReconciliationStep(
+      () => {
+        exited = true;
+      },
+      {
+        reconciliationSave: Response.json(
+          { message: 'Already saved for this shift' },
+          { status: 409 },
+        ),
+      },
+    );
+    await page.getByLabelText('Bullock').fill('0');
+    await page.getByLabelText('Bull-Payouts').fill('0');
+    await page.getByLabelText('Bull-LottoWinner').fill('0');
+    await page.getByRole('button', { name: 'Post and Close' }).click();
+
+    await expect
+      .element(page.getByText('Already saved for this shift'))
+      .toBeVisible();
+    expect(exited).toBe(false);
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.stringMatching(/\/close$/),
+      expect.anything(),
+    );
     expect(useManagerShiftStore.getState().lottoReconciliation).toBeNull();
   });
 });

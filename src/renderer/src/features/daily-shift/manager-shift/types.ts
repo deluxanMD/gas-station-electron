@@ -78,6 +78,9 @@ export interface LottoReconciliationData {
   bullockCents: number;
   bullPayoutsCents: number;
   bullLottoWinnerCents: number;
+  lottoNetCents: number;
+  redeemNetCents: number;
+  activationsNetCents: number;
   cashNetCents: number;
   // '' means over/short is not attributed yet; due within 3 days.
   attribution: LossAttribution;
