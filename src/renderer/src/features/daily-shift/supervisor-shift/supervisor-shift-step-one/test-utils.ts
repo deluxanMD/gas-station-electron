@@ -52,6 +52,7 @@ interface ShiftApiStub {
   consolidated?: Response;
   fuel?: Response;
   fuelDelivery?: Response;
+  fuelDips?: Response;
 }
 
 // Answers the shift list, the Review call, the fuel saves and the close; anything else fails the test.
@@ -60,6 +61,7 @@ export function stubShiftApi({
   consolidated = Response.json({ data: CONSOLIDATED }),
   fuel = Response.json({ data: { id: 1 } }, { status: 201 }),
   fuelDelivery = Response.json({ data: { id: 1 } }, { status: 201 }),
+  fuelDips = Response.json({ data: { id: 1 } }, { status: 201 }),
 }: ShiftApiStub = {}): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((url: string) => {
     if (url.endsWith('/shifts/consolidated')) {
@@ -68,6 +70,7 @@ export function stubShiftApi({
     if (/\/shifts\/\d+\/close$/.test(url)) {
       return Promise.resolve(Response.json({ data: {} }));
     }
+    if (url.endsWith('/fuel-dips')) return Promise.resolve(fuelDips.clone());
     if (url.endsWith('/fuel-deliveries')) {
       return Promise.resolve(fuelDelivery.clone());
     }

@@ -116,11 +116,13 @@ describe('DailyShiftScreen (real browser)', () => {
     // Next only navigates; nothing is saved before the last step.
     expect(posted('/fuel')).toBe(false);
     expect(posted('/fuel-deliveries')).toBe(false);
+    expect(posted('/fuel-dips')).toBe(false);
 
     await page.getByRole('button', { name: 'Finish' }).click();
     await vi.waitFor(() => expect(onExit).toHaveBeenCalled());
     expect(posted('/fuel')).toBe(true);
     expect(posted('/fuel-deliveries')).toBe(true);
+    expect(posted('/fuel-dips')).toBe(true);
     expect(posted('/shifts/9/close')).toBe(true);
   });
 

@@ -38,9 +38,9 @@ export function useFinishSupervisorShift(
       setError('There is no open shift to close.');
       return;
     }
-    const { fuel, fuelDelivery } = useSupervisorShiftStore.getState();
-    if (!fuel) {
-      setError('Enter the fuel volumes and totals before finishing.');
+    const { fuel, fuelDelivery, fuelDips } = useSupervisorShiftStore.getState();
+    if (!fuel || !fuelDips) {
+      setError('Enter the fuel volumes and the fuel dips before finishing.');
       return;
     }
     setClosing(true);
@@ -48,7 +48,7 @@ export function useFinishSupervisorShift(
     try {
       await saveSupervisorShift(
         { shiftId: shift.id, userId: shift.userId },
-        { fuel, fuelDelivery },
+        { fuel, fuelDelivery, fuelDips },
       );
       await endShift(shift.id);
     } catch (error_) {
