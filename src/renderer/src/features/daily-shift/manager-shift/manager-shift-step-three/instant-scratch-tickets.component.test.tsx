@@ -7,7 +7,7 @@ import { useShiftStore } from '@/features/shift/shift-store';
 import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from './constants';
-import { stubScratchTicketApi } from './test-utils';
+import { stubManagerShiftApi } from '@/features/daily-shift/manager-shift/test-utils';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -42,7 +42,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('requires the shift number and every count', async () => {
-    stubScratchTicketApi();
+    stubManagerShiftApi();
     await openScratchStep();
     await page.getByRole('button', { name: 'Next' }).click();
 
@@ -54,7 +54,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('rejects a Close above Open + Activations', async () => {
-    stubScratchTicketApi();
+    stubManagerShiftApi();
     await openScratchStep();
     await fillAllRows('0', '0');
     await page.getByLabelText('$5 close').fill('3');
@@ -67,7 +67,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('calculates Sold and Amount, saves and moves on', async () => {
-    const fetchMock = stubScratchTicketApi();
+    const fetchMock = stubManagerShiftApi();
     await openScratchStep();
     await fillAllRows('0', '0');
     // Open 10 + 5 activated - 3 left = 12 sold; 12 x $5 = $60.
@@ -118,7 +118,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('prefills the shift number with the current shift id', async () => {
-    const fetchMock = stubScratchTicketApi();
+    const fetchMock = stubManagerShiftApi();
     seedOpenShift({ id: 9 });
     await openScratchStep();
 
@@ -138,8 +138,8 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('prefills Open from the previous report', async () => {
-    stubScratchTicketApi({
-      latest: Response.json({
+    stubManagerShiftApi({
+      scratchLatest: Response.json({
         data: {
           id: 4,
           shiftNumber: 1,
@@ -165,8 +165,8 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('stays on the step and shows the error when saving fails', async () => {
-    stubScratchTicketApi({
-      save: Response.json(
+    stubManagerShiftApi({
+      scratchSave: Response.json(
         { message: 'A report for this shift is already saved for this date' },
         { status: 409 },
       ),
@@ -183,7 +183,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('does not save again when returning with unchanged values', async () => {
-    const fetchMock = stubScratchTicketApi();
+    const fetchMock = stubManagerShiftApi();
     await openScratchStep();
     await fillAllRows('0', '0');
     await page.getByRole('button', { name: 'Next' }).click();

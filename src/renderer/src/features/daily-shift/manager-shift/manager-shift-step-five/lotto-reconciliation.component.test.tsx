@@ -6,7 +6,7 @@ import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
-import { stubScratchTicketApi } from '@/features/daily-shift/manager-shift/manager-shift-step-three/test-utils';
+import { stubManagerShiftApi } from '@/features/daily-shift/manager-shift/test-utils';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -46,7 +46,7 @@ async function openReconciliationStep(onExit: () => void): Promise<void> {
 describe('Lotto Reconciliation window (real browser)', () => {
   beforeEach(() => {
     seedOpenShift();
-    stubScratchTicketApi();
+    stubManagerShiftApi();
   });
 
   afterEach(() => {

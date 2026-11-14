@@ -62,6 +62,8 @@ export interface LottoReportsData {
   dates: Record<LottoColumn, string>; // YYYY-MM-DD, '' when not entered
   reportTimes: Record<LottoColumn, string>; // HH:mm, '' when not entered
   columns: Record<LottoColumn, Record<LottoInputRow, number>>; // cents
+  // The previous day's day-end figures this report was netted against (cents).
+  previousDay: Record<LottoInputRow, number>;
   // Terminal net for the day: day-end slip minus the previous day's.
   netTerminalCents: number;
   // Net (day end less previous day) figures the reconciliation needs.

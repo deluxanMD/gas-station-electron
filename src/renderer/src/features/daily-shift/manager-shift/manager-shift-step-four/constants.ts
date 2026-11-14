@@ -8,6 +8,14 @@ import type {
   LottoSection,
 } from './types';
 
+// Slip names the API stores a report under.
+export const LOTTO_SLIP_TYPE = {
+  previousDay: 'PREVIOUS_DAY',
+  yesterday: 'YESTERDAY',
+  fullDay: 'FULL_DAY',
+  dayEnd: 'DAY_END',
+} as const;
+
 export const LOTTO_COLUMNS: readonly LottoColumnConfig[] = [
   {
     id: 'yesterday',

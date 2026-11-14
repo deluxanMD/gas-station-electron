@@ -5,7 +5,7 @@ import { useAuthStore } from '@/features/auth/auth-store';
 import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
-import { stubScratchTicketApi } from '@/features/daily-shift/manager-shift/manager-shift-step-three/test-utils';
+import { stubManagerShiftApi } from '@/features/daily-shift/manager-shift/test-utils';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { DIP_PRODUCTS } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-four/constants';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
@@ -173,7 +173,7 @@ describe('DailyShiftScreen (real browser)', () => {
   });
 
   it('walks a manager through the five steps', async () => {
-    stubScratchTicketApi();
+    stubManagerShiftApi();
     seedOpenShift();
     signInAs('MANAGER');
     await render(<DailyShiftScreen onExit={() => {}} />);
