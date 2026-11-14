@@ -1,33 +1,15 @@
-import { useState, type FormEvent } from 'react';
-import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
+import { useEffect, useState, type FormEvent } from 'react';
+import { UserRole } from '@/features/auth/constants';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import type { ClosedShift } from '@/features/daily-shift/supervisor-shift/types';
+import { fetchShiftsToday } from '@/features/shift/api';
 import type {
   ConsolidatedTotals,
+  TodayShifts,
   UseReviewShiftsOptions,
   UseReviewShiftsReturn,
+  UseTodayShiftsReturn,
 } from './types';
-
-// Until the API stores closed shifts, the only one available is the shift the
-// cashier just completed in this session.
-export function useClosedShifts(): ClosedShift[] {
-  const creditTotals = useCashierShiftStore((s) => s.creditTotals);
-  const dailySummary = useCashierShiftStore((s) => s.dailySummary);
-  const cashClose = useCashierShiftStore((s) => s.cashClose);
-
-  if (!creditTotals || !dailySummary || !cashClose) return [];
-  return [
-    {
-      id: `${dailySummary.dayEndDate}-${dailySummary.shiftNumber}`,
-      shiftNumber: dailySummary.shiftNumber,
-      dayEndDate: dailySummary.dayEndDate,
-      dayEndTime: dailySummary.dayEndTime,
-      creditTotals,
-      dailySummary,
-      cashClose,
-    },
-  ];
-}
 
 export function consolidateShifts(shifts: ClosedShift[]): ConsolidatedTotals {
   const totals: ConsolidatedTotals = {
@@ -73,26 +55,52 @@ export function consolidateShifts(shifts: ClosedShift[]): ConsolidatedTotals {
   return totals;
 }
 
-function isSameSelection(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((id) => b.includes(id));
+// Loads today's cashier shifts; `retry` reloads after a failure.
+export function useTodayShifts(): UseTodayShiftsReturn {
+  const [today, setToday] = useState<TodayShifts>({ status: 'loading' });
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      try {
+        const shifts = await fetchShiftsToday(UserRole.Cashier);
+        if (!cancelled) setToday({ status: 'ready', shifts });
+      } catch (error) {
+        if (cancelled) return;
+        setToday({
+          status: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Unable to load the shifts.',
+        });
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  const retry = (): void => {
+    setToday({ status: 'loading' });
+    setAttempt((n) => n + 1);
+  };
+
+  return { today, retry };
 }
 
 export function useReviewShifts({
   onNext,
 }: UseReviewShiftsOptions): UseReviewShiftsReturn {
-  const shifts = useClosedShifts();
+  const { today, retry } = useTodayShifts();
   const reviewedIds = useSupervisorShiftStore((s) => s.selectedShiftIds);
   const setSelectedShiftIds = useSupervisorShiftStore(
     (s) => s.setSelectedShiftIds,
   );
   const [checkedIds, setCheckedIds] = useState<string[]>(reviewedIds);
   const [error, setError] = useState<string | null>(null);
-
-  const reviewed =
-    reviewedIds.length > 0 && isSameSelection(checkedIds, reviewedIds);
-  const reviewedShifts = reviewed
-    ? shifts.filter((shift) => reviewedIds.includes(shift.id))
-    : [];
 
   const toggleShift = (id: string): void => {
     setError(null);
@@ -109,7 +117,7 @@ export function useReviewShifts({
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     // TEMP: validation disabled so the flow can be walked through. Restore:
-    // if (!reviewed) {
+    // if (checkedIds.length === 0) {
     //   setError('Select the shifts for the day and click Review before Next.');
     //   return;
     // }
@@ -117,14 +125,11 @@ export function useReviewShifts({
   };
 
   return {
-    shifts,
+    today,
+    retry,
     checkedIds,
     toggleShift,
     review,
-    totals: reviewed ? consolidateShifts(reviewedShifts) : null,
-    posMismatchCount: reviewedShifts.filter(
-      (shift) => shift.cashClose.posMismatch,
-    ).length,
     error,
     handleSubmit,
   };

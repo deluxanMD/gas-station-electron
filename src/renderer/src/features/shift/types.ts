@@ -6,6 +6,10 @@ export interface Shift {
   endTime: string | null;
 }
 
+export interface ShiftWithUser extends Shift {
+  userName: string;
+}
+
 export type CurrentShift =
   | { status: 'loading' }
   | { status: 'error'; message: string }

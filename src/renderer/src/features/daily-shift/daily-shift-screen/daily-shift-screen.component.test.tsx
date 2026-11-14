@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
@@ -8,7 +8,6 @@ import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/mana
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { DIP_PRODUCTS } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-four/constants';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
-import { seedClosedShift } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 
@@ -24,6 +23,7 @@ function signInAs(role: string): void {
 
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     resetShiftStore();
     useManagerShiftStore.setState({
       scratchTickets: null,
@@ -76,11 +76,28 @@ describe('DailyShiftScreen (real browser)', () => {
   });
 
   it('walks a supervisor through the five Close Day steps', async () => {
-    seedClosedShift();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          Response.json({
+            data: [
+              {
+                id: 11,
+                userId: 3,
+                userName: 'cashier1',
+                startTime: '2026-11-09T08:00:00.000Z',
+                endTime: '2026-11-09T16:00:00.000Z',
+              },
+            ],
+          }),
+        ),
+      ),
+    );
     signInAs('SUPERVISOR');
     await render(<DailyShiftScreen onExit={() => {}} />);
 
-    await page.getByLabelText(/Shift 1/).click();
+    await page.getByLabelText(/cashier1/).click();
     await page.getByRole('button', { name: 'Review' }).click();
     for (let step = 1; step <= 5; step++) {
       await expect.element(page.getByText(`Step ${step} of 5`)).toBeVisible();
