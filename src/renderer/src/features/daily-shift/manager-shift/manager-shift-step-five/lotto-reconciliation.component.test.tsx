@@ -116,10 +116,10 @@ describe('Lotto Reconciliation window (real browser)', () => {
 
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
-    // Managers don't track shifts, so nothing is closed on the API.
-    expect(fetch).not.toHaveBeenCalledWith(
-      expect.stringMatching(/\/close$/),
-      expect.anything(),
+    // Managers work inside a tracked shift, so Post and Close ends it.
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/shifts\/9\/close$/),
+      expect.objectContaining({ method: 'POST' }),
     );
     expect(useManagerShiftStore.getState().lottoReconciliation).toEqual({
       bullockCents: 80_000,

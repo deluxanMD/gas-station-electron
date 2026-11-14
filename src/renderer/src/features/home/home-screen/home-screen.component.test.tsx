@@ -168,8 +168,32 @@ describe('HomeScreen shift (real browser)', () => {
     await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('has no shift controls or closing prompt for a manager', async () => {
+  it('starts a shift for a manager like any tracked role', async () => {
     signInAs('MANAGER');
+    useShiftStore.setState({ current: { status: 'none' } });
+    await renderHome();
+
+    await expect
+      .element(page.getByRole('button', { name: 'Start shift' }))
+      .toBeVisible();
+  });
+
+  it('asks a manager to confirm closing the shift', async () => {
+    signInAs('MANAGER');
+    seedOpenShift();
+    const onSelectModule = vi.fn();
+    await renderHome(onSelectModule);
+
+    await page.getByRole('button', { name: 'Daily Shift' }).click();
+
+    await expect
+      .element(page.getByRole('dialog', { name: 'Ready to close your shift?' }))
+      .toBeVisible();
+    expect(onSelectModule).not.toHaveBeenCalled();
+  });
+
+  it('has no shift controls or closing prompt for an owner', async () => {
+    signInAs('OWNER');
     useShiftStore.setState({ current: { status: 'none' } });
     const onSelectModule = vi.fn();
     await renderHome(onSelectModule);

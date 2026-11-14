@@ -7,7 +7,7 @@ export interface ScratchTicketApiStub {
 }
 
 // Answers what the manager flow calls up to and including step 3: today's
-// shifts (step 1) and the scratch ticket endpoints; anything else fails the test.
+// shifts (step 1), the scratch ticket endpoints and closing the shift; anything else fails the test.
 export function stubScratchTicketApi({
   latest = Response.json({ data: null }),
   save = Response.json({ data: { id: 1 } }, { status: 201 }),
@@ -18,6 +18,9 @@ export function stubScratchTicketApi({
     }
     if (url.endsWith('/scratch-tickets') && init?.method === 'POST') {
       return Promise.resolve(save.clone());
+    }
+    if (/\/shifts\/\d+\/close$/.test(url)) {
+      return Promise.resolve(Response.json({ data: {} }));
     }
     return /\/shifts\?role=CASHIER$/.test(url)
       ? Promise.resolve(Response.json({ data: [] }))
