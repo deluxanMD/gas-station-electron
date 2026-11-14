@@ -1,34 +1,43 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
+import { LOTTO_INPUT_ROWS } from '@/features/daily-shift/manager-shift/manager-shift-step-four/constants';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
+import { stubManagerShiftApi } from '@/features/daily-shift/manager-shift/test-utils';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
 }
 
-async function openLottoStep(): Promise<void> {
+async function openLottoStep(
+  stub: Parameters<typeof stubManagerShiftApi>[0] = {},
+): Promise<ReturnType<typeof stubManagerShiftApi>> {
+  const fetchMock = stubManagerShiftApi(stub);
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
-  useAuthStore.getState().signIn(token);
+  useAuthStore.getState().signIn(token, 3);
+  seedOpenShift();
   await render(<DailyShiftScreen onExit={() => {}} />);
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByLabelText('Shift #').fill('1');
   for (const denomination of SCRATCH_DENOMINATIONS) {
     await page.getByLabelText(`$${denomination} close`).fill('0');
     await page.getByLabelText(`$${denomination} activations`).fill('0');
   }
   await page.getByRole('button', { name: 'Next' }).click();
   await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
+  return fetchMock;
 }
 
 describe('Lotto Reports window (real browser)', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
+    resetShiftStore();
     useAuthStore.getState().signOut();
-    useManagerShiftStore.setState({ scratchTickets: null, lottoReports: null });
+    useManagerShiftStore.getState().reset();
     localStorage.clear();
   });
 
@@ -99,5 +108,58 @@ describe('Lotto Reports window (real browser)', () => {
     expect(useManagerShiftStore.getState().lottoReports?.netTerminalCents).toBe(
       103_000,
     );
+  });
+
+  it('shows the previous day figures from the API and nets against them', async () => {
+    const amounts = Object.fromEntries(
+      LOTTO_INPUT_ROWS.map((key) => [key, 0]),
+    ) as Record<string, number>;
+    amounts.onlineNetSales = 50_000;
+    await openLottoStep({
+      lottoLatest: Response.json({ data: { amounts } }),
+    });
+
+    await page
+      .getByLabelText('On-Line Products Net Sales - Day end')
+      .fill('1000');
+    // Day end 1000.00 less the previous day's 500.00.
+    await expect
+      .element(page.getByTestId('lotto-net-netOnline'))
+      .toHaveTextContent('500.00');
+  });
+
+  it('blocks Next until the previous day figures load, and retries', async () => {
+    await openLottoStep({
+      lottoLatest: Response.json({ message: 'Database down' }, { status: 500 }),
+    });
+    await expect.element(page.getByText('Database down')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText(/could not be loaded/)).toBeVisible();
+    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
+
+    stubManagerShiftApi();
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect
+      .element(page.getByText('Database down'))
+      .not.toBeInTheDocument();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
+  });
+
+  it('keeps the values and posts nothing on Next', async () => {
+    const fetchMock = await openLottoStep();
+    await page
+      .getByLabelText('On-Line Products Net Sales - Day end')
+      .fill('1000.50');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
+
+    const columns = useManagerShiftStore.getState().lottoReports?.columns;
+    expect(columns?.dayEnd.onlineNetSales).toBe(100_050);
+    // Posted together with the other reports by "Post and Close".
+    expect(
+      fetchMock.mock.calls.some(([, init]) => init?.method === 'POST'),
+    ).toBe(false);
   });
 });

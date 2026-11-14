@@ -40,6 +40,35 @@ export interface LottoSection {
 // Cents for every row of one slip column, typed rows and subtotals alike.
 export type LottoCalculated = Record<LottoInputRow | LottoSubtotalRow, number>;
 
+export interface LottoSlipRequest {
+  slipType: string;
+  // YYYY-MM-DD, null when the slip was not entered.
+  reportDate: string | null;
+  // HH:mm, null when the slip was not entered.
+  reportTime: string | null;
+  amounts: Record<LottoInputRow, number>;
+}
+
+export interface LottoReportRequest {
+  shiftId: number;
+  userId: number;
+  slips: LottoSlipRequest[];
+}
+
+export interface LottoDayEndSlip {
+  amounts: Record<LottoInputRow, number>;
+}
+
+export interface LatestLottoDayEndResponse {
+  data: LottoDayEndSlip | null;
+}
+
+// The previous day's figures come from the API and cannot be typed.
+export type PreviousDayStatus =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; amounts: Record<LottoInputRow, number> };
+
 export interface UseLottoReportsFormOptions {
   onNext: () => void;
 }
@@ -47,8 +76,10 @@ export interface UseLottoReportsFormOptions {
 export interface UseLottoReportsFormReturn {
   form: UseFormReturn<LottoReportsValues>;
   handleSubmit: ReturnType<UseFormReturn<LottoReportsValues>['handleSubmit']>;
-  // Per slip column, plus the Net column (day end minus previous day).
   calculated: Record<LottoColumn, LottoCalculated>;
   previousDay: LottoCalculated;
   net: LottoCalculated;
+  previousDayStatus: PreviousDayStatus;
+  retryPreviousDay: () => void;
+  previousDayError: string | null;
 }

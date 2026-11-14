@@ -113,11 +113,16 @@ export function useLottoReconciliationForm({
     summaryTotal: net + activationsNet + toSignedCents(cashNet),
   };
 
+  // Nothing is sent to the API here: "Post and Close" saves the scratch tickets,
+  // the lotto reports and this reconciliation together, then closes the shift.
   const handleSubmit = form.handleSubmit((values) => {
     setLottoReconciliation({
       bullockCents: parseAmountToCents(values.bullock),
       bullPayoutsCents: parseAmountToCents(values.bullPayouts),
       bullLottoWinnerCents: parseAmountToCents(values.bullLottoWinner),
+      lottoNetCents: figures.values.lottoNet,
+      redeemNetCents: figures.values.redemNet,
+      activationsNetCents: figures.activationsNet,
       cashNetCents: parseSignedAmountToCents(values.cashNet),
       attribution: values.attribution,
       totalCents: figures.summaryTotal,

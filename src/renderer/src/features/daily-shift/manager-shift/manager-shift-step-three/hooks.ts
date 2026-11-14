@@ -1,6 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useOpenShift } from '@/features/shift/hooks';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
+import { fetchLatestScratchTickets } from './api';
 import { EMPTY_SCRATCH_TICKETS, SCRATCH_DENOMINATIONS } from './constants';
 import { scratchTicketsSchema } from './schema';
 import type {
@@ -34,6 +37,7 @@ export function useScratchTicketsForm({
   onNext,
 }: UseScratchTicketsFormOptions): UseScratchTicketsFormReturn {
   const saved = useManagerShiftStore((s) => s.scratchTickets);
+  const openShift = useOpenShift();
   const setScratchTickets = useManagerShiftStore((s) => s.setScratchTickets);
 
   const defaultValues: ScratchTicketsValues = saved
@@ -45,12 +49,45 @@ export function useScratchTicketsForm({
           activations: String(row.activationsCount),
         })),
       }
-    : EMPTY_SCRATCH_TICKETS;
+    : {
+        ...EMPTY_SCRATCH_TICKETS,
+        // The sheet is for the shift in progress; still editable.
+        shiftNumber: openShift ? String(openShift.id) : '',
+      };
 
   const form = useForm<ScratchTicketsValues>({
     resolver: zodResolver(scratchTicketsSchema),
     defaultValues,
   });
+
+  // Open is the previous report's Close. It is only prefilled for a fresh form,
+  // and a failed lookup leaves the zeros (still editable) rather than blocking.
+  const hasSaved = saved !== null;
+  useEffect(() => {
+    if (hasSaved) return;
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      try {
+        const latest = await fetchLatestScratchTickets();
+        if (cancelled || !latest) return;
+        for (const [index, denomination] of SCRATCH_DENOMINATIONS.entries()) {
+          const line = latest.lines.find(
+            (l) => l.denomination === denomination,
+          );
+          const name = `rows.${index}.open` as const;
+          if (line && form.getValues(name) === '0') {
+            form.setValue(name, String(line.closeCount));
+          }
+        }
+      } catch {
+        // Keep the zeros; the manager can still type the counts.
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [form, hasSaved]);
 
   const rows = useWatch({ control: form.control, name: 'rows' });
   const calculations = rows.map((row, index) =>

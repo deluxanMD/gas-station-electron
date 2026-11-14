@@ -1,3 +1,4 @@
+import type { LossAttribution } from '@/features/daily-shift/manager-shift/types';
 import type {
   LossAttributionOption,
   LottoReconciliationValues,
@@ -26,6 +27,15 @@ export const LOSS_ATTRIBUTION_OPTIONS: readonly LossAttributionOption[] = [
   { value: 'previous-day', label: 'Previous Day' },
   { value: 'next-day', label: 'Next Day' },
 ];
+
+export const LOSS_ATTRIBUTION_API: Record<
+  Exclude<LossAttribution, ''>,
+  string
+> = {
+  employee: 'EMPLOYEE',
+  'previous-day': 'PREVIOUS_DAY',
+  'next-day': 'NEXT_DAY',
+};
 
 export const ATTRIBUTION_SELECT_CLASS =
   'h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';

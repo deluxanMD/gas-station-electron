@@ -35,6 +35,7 @@ export function InstantScratchTickets({
           <RowField<ScratchTicketsValues>
             name="shiftNumber"
             label="Shift #"
+            disabled
             inputMode="numeric"
             autoComplete="off"
             className="border-0 shadow-none"

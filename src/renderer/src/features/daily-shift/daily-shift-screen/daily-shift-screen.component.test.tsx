@@ -5,6 +5,7 @@ import { useAuthStore } from '@/features/auth/auth-store';
 import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
+import { stubManagerShiftApi } from '@/features/daily-shift/manager-shift/test-utils';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { DIP_PRODUCTS } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-four/constants';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
@@ -26,11 +27,7 @@ describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     resetShiftStore();
-    useManagerShiftStore.setState({
-      scratchTickets: null,
-      lottoReports: null,
-      lottoReconciliation: null,
-    });
+    useManagerShiftStore.getState().reset();
     useSupervisorShiftStore.setState({
       selectedShiftIds: [],
       fuel: null,
@@ -172,6 +169,8 @@ describe('DailyShiftScreen (real browser)', () => {
   });
 
   it('walks a manager through the five steps', async () => {
+    stubManagerShiftApi();
+    seedOpenShift();
     signInAs('MANAGER');
     await render(<DailyShiftScreen onExit={() => {}} />);
 
@@ -183,7 +182,6 @@ describe('DailyShiftScreen (real browser)', () => {
         await page.getByLabelText('Bull-LottoWinner').fill('0');
       }
       if (step === 3) {
-        await page.getByLabelText('Shift #').fill('1');
         for (const denomination of SCRATCH_DENOMINATIONS) {
           await page.getByLabelText(`$${denomination} close`).fill('0');
           await page.getByLabelText(`$${denomination} activations`).fill('0');

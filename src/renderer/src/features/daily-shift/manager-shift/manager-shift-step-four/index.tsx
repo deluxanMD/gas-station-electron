@@ -6,6 +6,7 @@ import {
   FormItem,
   FormMessage,
 } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -26,12 +27,30 @@ export function LottoReports({
   formId,
   onNext,
 }: LottoReportsProps): JSX.Element {
-  const { form, handleSubmit, calculated, previousDay, net } =
-    useLottoReportsForm({ onNext });
+  const {
+    form,
+    handleSubmit,
+    calculated,
+    previousDay,
+    net,
+    previousDayStatus,
+    retryPreviousDay,
+    previousDayError,
+  } = useLottoReportsForm({ onNext });
 
   return (
     <Form {...form}>
       <form id={formId} onSubmit={handleSubmit} noValidate>
+        {previousDayStatus.status === 'error' ? (
+          <div className="mb-2 flex items-center gap-3">
+            <p role="alert" className="text-sm text-destructive">
+              {previousDayStatus.message}
+            </p>
+            <Button type="button" variant="outline" onClick={retryPreviousDay}>
+              Retry
+            </Button>
+          </div>
+        ) : null}
         <p className="mb-2 text-center font-medium">From OLG Slips</p>
         <div className="rounded-md border border-border">
           <Table className="min-w-[56rem]">
@@ -162,6 +181,11 @@ export function LottoReports({
             </TableBody>
           </Table>
         </div>
+        {previousDayError ? (
+          <p role="alert" className="mt-2 text-sm text-destructive">
+            {previousDayError}
+          </p>
+        ) : null}
       </form>
     </Form>
   );

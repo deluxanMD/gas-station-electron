@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { ConsolidatedShifts } from '@/features/shift/types';
 
 export interface ManagerShiftProps {
   // Leaves the flow, e.g. back to the home screen.
@@ -61,6 +62,8 @@ export interface LottoReportsData {
   dates: Record<LottoColumn, string>; // YYYY-MM-DD, '' when not entered
   reportTimes: Record<LottoColumn, string>; // HH:mm, '' when not entered
   columns: Record<LottoColumn, Record<LottoInputRow, number>>; // cents
+  // The previous day's day-end figures this report was netted against (cents).
+  previousDay: Record<LottoInputRow, number>;
   // Terminal net for the day: day-end slip minus the previous day's.
   netTerminalCents: number;
   // Net (day end less previous day) figures the reconciliation needs.
@@ -75,13 +78,33 @@ export interface LottoReconciliationData {
   bullockCents: number;
   bullPayoutsCents: number;
   bullLottoWinnerCents: number;
+  lottoNetCents: number;
+  redeemNetCents: number;
+  activationsNetCents: number;
   cashNetCents: number;
   // '' means over/short is not attributed yet; due within 3 days.
   attribution: LossAttribution;
   totalCents: number;
 }
 
+export interface ManagerSavedReports {
+  scratchTickets: ScratchTicketsData | null;
+  lottoReports: LottoReportsData | null;
+  lottoReconciliation: LottoReconciliationData | null;
+}
+
 export interface ManagerShiftState {
+  saved: ManagerSavedReports;
+  // Clears everything once a shift is posted, so the next one starts fresh.
+  reset: () => void;
+  markSaved: <K extends keyof ManagerSavedReports>(
+    report: K,
+    data: NonNullable<ManagerSavedReports[K]>,
+  ) => void;
+  selectedShiftIds: string[];
+  setSelectedShiftIds: (ids: string[]) => void;
+  consolidated: ConsolidatedShifts | null;
+  setConsolidated: (consolidated: ConsolidatedShifts | null) => void;
   scratchTickets: ScratchTicketsData | null;
   setScratchTickets: (data: ScratchTicketsData) => void;
   lottoReports: LottoReportsData | null;
