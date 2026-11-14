@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { useCan } from '@/features/auth/hooks';
 import { hasPermission } from '@/features/auth/permissions';
 import type { ModuleId } from '@/features/auth/types';
 import { loadCurrentShift, useStartShift } from '@/features/shift/hooks';
@@ -25,19 +26,21 @@ export function useShiftHeader(): UseShiftHeader {
   return { ...startShift, current, retry };
 }
 
-// Daily Shift ends the shift, so it needs an open one and asks before opening.
+// For shift-tracked roles Daily Shift ends the shift, so it needs an open one
+// and asks before opening. Other roles open it directly.
 export function useModuleSelection(
   onSelectModule: (id: ModuleId) => void,
 ): UseModuleSelection {
   const hasOpenShift = useShiftStore((s) => s.current.status === 'open');
+  const tracksShift = useCan('daily-shift', 'trackShift');
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const isLocked = (id: ModuleId): boolean =>
-    id === DAILY_SHIFT_MODULE_ID && !hasOpenShift;
+    tracksShift && id === DAILY_SHIFT_MODULE_ID && !hasOpenShift;
 
   const select = (id: ModuleId): void => {
     if (isLocked(id)) return;
-    if (id === DAILY_SHIFT_MODULE_ID) setConfirmOpen(true);
+    if (tracksShift && id === DAILY_SHIFT_MODULE_ID) setConfirmOpen(true);
     else onSelectModule(id);
   };
 

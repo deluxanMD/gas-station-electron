@@ -64,6 +64,8 @@ src/renderer/src/
 - `strict` stays on. No `any`; use `unknown` and narrow. No `@ts-ignore` (use `@ts-expect-error` with a reason).
 - ESLint enforces `interface` for object shapes (`consistent-type-definitions`) and explicit return types on functions; use `type` for unions and intersections.
 - Model states with discriminated unions rather than boolean flags.
+- Interfaces and type aliases live in the relevant `types.ts` (or the API's `src/types/<feature>.types.ts`), never inline in a component, hook or service. This includes DB row shapes.
+- Never hard-code a role code string (`'CASHIER'`, …). Use the `UserRole` enum (`features/auth/constants.ts` here, `src/constants/role.constants.ts` in the API). If a needed enum or constant group doesn't exist yet, create it in a constants file first.
 - Share IPC channel names and payload types from one place so main, preload and renderer can't drift.
 - Use `import type` for type-only imports.
 - Put a unit's types in its `types.ts` and its constants in its `constants.ts`, not inline in the component or hook. Every component has its own pair; don't share one across components.

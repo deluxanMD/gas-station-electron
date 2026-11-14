@@ -1,5 +1,6 @@
 import { apiRequest } from '@/lib/api';
-import type { Shift } from './types';
+import type { UserRole } from '@/features/auth/constants';
+import type { ConsolidatedShifts, Shift, ShiftWithUser } from './types';
 
 interface ShiftResponse<T> {
   data: T;
@@ -33,4 +34,28 @@ export async function closeShift(shiftId: number): Promise<void> {
     { method: 'POST' },
     'Unable to close the shift.',
   );
+}
+
+export async function fetchShiftsToday(
+  role?: UserRole,
+): Promise<ShiftWithUser[]> {
+  const query = role ? `?role=${role}` : '';
+  const body = await apiRequest<ShiftResponse<ShiftWithUser[]>>(
+    `shifts${query}`,
+    undefined,
+    'Unable to load the shifts.',
+  );
+  return body.data;
+}
+
+// Sums what the cashiers entered for the given shifts.
+export async function fetchConsolidatedShifts(
+  shiftIds: number[],
+): Promise<ConsolidatedShifts> {
+  const body = await apiRequest<ShiftResponse<ConsolidatedShifts>>(
+    'shifts/consolidated',
+    { method: 'POST', body: JSON.stringify({ shiftIds }) },
+    'Unable to load the consolidated values.',
+  );
+  return body.data;
 }

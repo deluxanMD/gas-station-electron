@@ -18,3 +18,16 @@ export interface UseFuelDipsFormReturn {
   form: UseFormReturn<FuelDipsValues>;
   handleSubmit: ReturnType<UseFormReturn<FuelDipsValues>['handleSubmit']>;
 }
+
+// Body of POST /fuel-dips. Volumes are litres, as the API stores.
+export interface FuelDipsRequest {
+  shiftId: number;
+  userId: number;
+  dipAt: string;
+  regularTcVolume: number;
+  regularUllage90: number;
+  premiumTcVolume: number;
+  premiumUllage90: number;
+  dieselTcVolume: number;
+  dieselUllage90: number;
+}

@@ -167,4 +167,22 @@ describe('HomeScreen shift (real browser)', () => {
     expect(onSelectModule).not.toHaveBeenCalled();
     await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('has no shift controls or closing prompt for a manager', async () => {
+    signInAs('MANAGER');
+    useShiftStore.setState({ current: { status: 'none' } });
+    const onSelectModule = vi.fn();
+    await renderHome(onSelectModule);
+
+    await expect
+      .element(page.getByRole('button', { name: 'Start shift' }))
+      .not.toBeInTheDocument();
+    await expect
+      .element(page.getByRole('button', { name: /^Daily Shift/ }))
+      .toBeEnabled();
+
+    await page.getByRole('button', { name: /^Daily Shift/ }).click();
+    expect(onSelectModule).toHaveBeenCalledWith('daily-shift');
+    await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+  });
 });

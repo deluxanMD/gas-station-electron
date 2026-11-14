@@ -22,6 +22,8 @@ export const ACCESS = {
       UserRole.Supervisor,
       UserRole.Cashier,
     ],
+    // Cashiers and supervisors work inside a tracked shift (start, close, closing modal).
+    trackShift: [UserRole.Supervisor, UserRole.Cashier],
   },
   'wetstock-management': {
     view: [UserRole.Owner, UserRole.Manager, UserRole.Supervisor],

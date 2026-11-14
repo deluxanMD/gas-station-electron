@@ -31,6 +31,7 @@ export function useFuelEntryForm({
     defaultValues,
   });
 
+  // Saved to the API with the rest of the shift on the last step.
   const handleSubmit = form.handleSubmit((values) => {
     setFuel({
       grades: values.grades.map((grade, index) => ({
