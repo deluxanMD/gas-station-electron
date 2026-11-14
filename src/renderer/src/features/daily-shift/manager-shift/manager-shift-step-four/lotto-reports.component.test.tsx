@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
+import { stubScratchTicketApi } from '@/features/daily-shift/manager-shift/manager-shift-step-three/test-utils';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -12,7 +13,8 @@ function encodePart(value: object): string {
 
 async function openLottoStep(): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
-  useAuthStore.getState().signIn(token);
+  useAuthStore.getState().signIn(token, 3);
+  stubScratchTicketApi();
   await render(<DailyShiftScreen onExit={() => {}} />);
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
@@ -27,6 +29,7 @@ async function openLottoStep(): Promise<void> {
 
 describe('Lotto Reports window (real browser)', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     useAuthStore.getState().signOut();
     useManagerShiftStore.setState({ scratchTickets: null, lottoReports: null });
     localStorage.clear();

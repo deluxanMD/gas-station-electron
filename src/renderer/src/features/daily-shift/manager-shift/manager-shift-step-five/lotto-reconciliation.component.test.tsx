@@ -6,6 +6,7 @@ import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
+import { stubScratchTicketApi } from '@/features/daily-shift/manager-shift/manager-shift-step-three/test-utils';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -14,7 +15,7 @@ function encodePart(value: object): string {
 // Walks steps 1-4: $5 tickets sold 12 ($60, $25 activated) and lotto slips.
 async function openReconciliationStep(onExit: () => void): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
-  useAuthStore.getState().signIn(token);
+  useAuthStore.getState().signIn(token, 3);
   await render(<DailyShiftScreen onExit={onExit} />);
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
@@ -46,10 +47,7 @@ async function openReconciliationStep(onExit: () => void): Promise<void> {
 describe('Lotto Reconciliation window (real browser)', () => {
   beforeEach(() => {
     seedOpenShift();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => Promise.resolve(Response.json({ data: [] }))),
-    );
+    stubScratchTicketApi();
   });
 
   afterEach(() => {

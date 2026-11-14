@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from './constants';
+import { stubScratchTicketApi } from './test-utils';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -12,7 +13,7 @@ function encodePart(value: object): string {
 
 async function openScratchStep(): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
-  useAuthStore.getState().signIn(token);
+  useAuthStore.getState().signIn(token, 3);
   await render(<DailyShiftScreen onExit={() => {}} />);
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Next' }).click();
@@ -28,12 +29,14 @@ async function fillAllRows(close: string, activations: string): Promise<void> {
 
 describe('Instant Scratch Tickets window (real browser)', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     useAuthStore.getState().signOut();
     useManagerShiftStore.setState({ scratchTickets: null });
     localStorage.clear();
   });
 
   it('requires the shift number and every count', async () => {
+    stubScratchTicketApi();
     await openScratchStep();
     await page.getByRole('button', { name: 'Next' }).click();
 
@@ -45,6 +48,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('rejects a Close above Open + Activations', async () => {
+    stubScratchTicketApi();
     await openScratchStep();
     await page.getByLabelText('Shift #').fill('1');
     await fillAllRows('0', '0');
@@ -58,6 +62,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
   });
 
   it('calculates Sold and Amount, saves and moves on', async () => {
+    const fetchMock = stubScratchTicketApi();
     await openScratchStep();
     await page.getByLabelText('Shift #').fill('2');
     await fillAllRows('0', '0');
@@ -88,5 +93,88 @@ describe('Instant Scratch Tickets window (real browser)', () => {
       soldCount: 12,
       amountCents: 6000,
     });
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith('/scratch-tickets') && init?.method === 'POST',
+    );
+    const body = JSON.parse(post?.[1].body as string) as {
+      userId: number;
+      shiftNumber: number;
+      lines: unknown[];
+    };
+    expect(body.userId).toBe(3);
+    expect(body.shiftNumber).toBe(2);
+    expect(body.lines).toHaveLength(SCRATCH_DENOMINATIONS.length);
+    expect(body.lines).toContainEqual({
+      denomination: 5,
+      openCount: 10,
+      closeCount: 3,
+      activationsCount: 5,
+    });
+  });
+
+  it('prefills Open from the previous report', async () => {
+    stubScratchTicketApi({
+      latest: Response.json({
+        data: {
+          id: 4,
+          shiftNumber: 1,
+          businessDate: '2026-11-13',
+          totalAmountCents: 0,
+          lines: [
+            {
+              denomination: 5,
+              openCount: 10,
+              closeCount: 7,
+              activationsCount: 0,
+              soldCount: 3,
+              amountCents: 1500,
+            },
+          ],
+        },
+      }),
+    });
+    await openScratchStep();
+
+    await expect.element(page.getByLabelText('$5 open')).toHaveValue('7');
+    await expect.element(page.getByLabelText('$10 open')).toHaveValue('0');
+  });
+
+  it('stays on the step and shows the error when saving fails', async () => {
+    stubScratchTicketApi({
+      save: Response.json(
+        { message: 'A report for this shift is already saved for this date' },
+        { status: 409 },
+      ),
+    });
+    await openScratchStep();
+    await page.getByLabelText('Shift #').fill('1');
+    await fillAllRows('0', '0');
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await expect
+      .element(page.getByText(/already saved for this date/))
+      .toBeVisible();
+    await expect.element(page.getByText('Step 3 of 5')).toBeVisible();
+    expect(useManagerShiftStore.getState().scratchTickets).toBeNull();
+  });
+
+  it('does not save again when returning with unchanged values', async () => {
+    const fetchMock = stubScratchTicketApi();
+    await openScratchStep();
+    await page.getByLabelText('Shift #').fill('1');
+    await fillAllRows('0', '0');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Back' }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
+
+    const posts = fetchMock.mock.calls.filter(
+      ([url, init]) =>
+        String(url).endsWith('/scratch-tickets') && init?.method === 'POST',
+    );
+    expect(posts).toHaveLength(1);
   });
 });

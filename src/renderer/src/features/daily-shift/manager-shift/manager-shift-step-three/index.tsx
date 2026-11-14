@@ -20,7 +20,7 @@ export function InstantScratchTickets({
   formId,
   onNext,
 }: InstantScratchTicketsProps): JSX.Element {
-  const { form, handleSubmit, calculations, totalAmountCents } =
+  const { form, handleSubmit, calculations, totalAmountCents, saveError } =
     useScratchTicketsForm({ onNext });
 
   return (
@@ -102,6 +102,11 @@ export function InstantScratchTickets({
             </span>
           </div>
         </div>
+        {saveError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {saveError}
+          </p>
+        ) : null}
       </form>
     </Form>
   );
