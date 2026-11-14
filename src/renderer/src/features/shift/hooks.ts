@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { useCan } from '@/features/auth/hooks';
 import { closeShift, fetchCurrentShift, startShift } from './api';
 import { useShiftStore } from './shift-store';
 import type { Shift, UseFinishShift, UseStartShift } from './types';
@@ -75,11 +76,17 @@ export function useStartShift(): UseStartShift {
 // then leaves the flow. The cashier closes inside its own save instead.
 export function useFinishShift(onExit: () => void): UseFinishShift {
   const shift = useOpenShift();
+  const tracksShift = useCan('daily-shift', 'trackShift');
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const finish = async (): Promise<void> => {
     if (closing) return;
+    // Roles that don't track shifts have nothing to close.
+    if (!tracksShift) {
+      onExit();
+      return;
+    }
     if (!shift) {
       setError('There is no open shift to close.');
       return;

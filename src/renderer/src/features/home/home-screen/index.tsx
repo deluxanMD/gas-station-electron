@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { Modal } from '@/components/modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Can } from '@/features/auth/can';
 import { ShiftStatus } from '@/features/home/shift-status';
 import { useModuleSelection, useShiftHeader, useVisibleModules } from './hooks';
 import type { HomeScreenProps } from './types';
@@ -26,13 +27,15 @@ export function HomeScreen({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <ShiftStatus
-            current={shift.current}
-            onStart={shift.start}
-            starting={shift.starting}
-            startError={shift.error}
-            onRetry={shift.retry}
-          />
+          <Can module="daily-shift" action="trackShift">
+            <ShiftStatus
+              current={shift.current}
+              onStart={shift.start}
+              starting={shift.starting}
+              startError={shift.error}
+              onRetry={shift.retry}
+            />
+          </Can>
           <Button variant="secondary" onClick={onSignOut}>
             Sign out
           </Button>

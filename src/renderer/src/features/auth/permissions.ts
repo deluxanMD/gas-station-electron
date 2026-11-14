@@ -22,6 +22,8 @@ export const ACCESS = {
       UserRole.Supervisor,
       UserRole.Cashier,
     ],
+    // Only cashiers work inside a tracked shift (start, close, closing modal).
+    trackShift: [UserRole.Cashier],
   },
   'wetstock-management': {
     view: [UserRole.Owner, UserRole.Manager, UserRole.Supervisor],

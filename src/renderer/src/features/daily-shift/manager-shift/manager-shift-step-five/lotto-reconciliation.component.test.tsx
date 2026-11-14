@@ -118,10 +118,8 @@ describe('Lotto Reconciliation window (real browser)', () => {
 
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/shifts\/9\/close$/),
-      expect.objectContaining({ method: 'POST' }),
-    );
+    // Managers don't track shifts, so nothing is closed on the API.
+    expect(fetch).not.toHaveBeenCalled();
     expect(useManagerShiftStore.getState().lottoReconciliation).toEqual({
       bullockCents: 80_000,
       bullPayoutsCents: 10_000,
@@ -144,28 +142,6 @@ describe('Lotto Reconciliation window (real browser)', () => {
     await expect.element(page.getByRole('alert')).toBeVisible();
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
-  });
-
-  it('stays on the step and shows the error when the shift cannot be closed', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        Promise.resolve(
-          Response.json({ message: 'Database down' }, { status: 500 }),
-        ),
-      ),
-    );
-    let exited = false;
-    await openReconciliationStep(() => {
-      exited = true;
-    });
-    await page.getByLabelText('Bullock').fill('0');
-    await page.getByLabelText('Bull-Payouts').fill('0');
-    await page.getByLabelText('Bull-LottoWinner').fill('0');
-    await page.getByRole('button', { name: 'Post and Close' }).click();
-
-    await expect.element(page.getByText('Database down')).toBeVisible();
-    expect(exited).toBe(false);
   });
 
   it('requires the Bullock figures', async () => {
