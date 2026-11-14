@@ -1,15 +1,24 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
-import { formatDateTime } from '@/lib/utils';
+import { ConsolidatedValues } from './consolidated-values';
 import { useReviewShifts } from './hooks';
+import { ShiftOption } from './shift-option';
 import type { ReviewShiftsProps } from './types';
 
 export function ReviewShifts({
   formId,
   onNext,
 }: ReviewShiftsProps): JSX.Element {
-  const { today, retry, checkedIds, toggleShift, review, error, handleSubmit } =
-    useReviewShifts({ onNext });
+  const {
+    today,
+    retry,
+    checkedIds,
+    toggleShift,
+    review,
+    reviewStatus,
+    consolidated,
+    handleSubmit,
+  } = useReviewShifts({ onNext });
 
   return (
     <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -35,39 +44,32 @@ export function ReviewShifts({
         ) : null}
         {today.status === 'ready'
           ? today.shifts.map((shift) => (
-              <label
+              <ShiftOption
                 key={shift.id}
-                className="flex items-center gap-3 rounded-md border border-border px-4 py-3"
-              >
-                <input
-                  type="checkbox"
-                  checked={checkedIds.includes(String(shift.id))}
-                  onChange={() => toggleShift(String(shift.id))}
-                />
-                <span>
-                  {shift.userName} · Started {formatDateTime(shift.startTime)} ·{' '}
-                  {shift.endTime
-                    ? `Ended ${formatDateTime(shift.endTime)}`
-                    : 'In progress'}
-                </span>
-              </label>
+                shift={shift}
+                checked={checkedIds.includes(String(shift.id))}
+                onToggle={toggleShift}
+              />
             ))
           : null}
         <Button
           type="button"
           variant="secondary"
-          disabled={checkedIds.length === 0}
+          disabled={
+            checkedIds.length === 0 || reviewStatus.status === 'loading'
+          }
           onClick={review}
         >
-          Review
+          {reviewStatus.status === 'loading' ? 'Reviewing…' : 'Review'}
         </Button>
       </fieldset>
 
-      {error ? (
+      {reviewStatus.status === 'error' ? (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {reviewStatus.message}
         </p>
       ) : null}
+      {consolidated ? <ConsolidatedValues consolidated={consolidated} /> : null}
     </form>
   );
 }

@@ -8,6 +8,7 @@ import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/mana
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { DIP_PRODUCTS } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-four/constants';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
+import { stubShiftApi } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 
@@ -76,24 +77,7 @@ describe('DailyShiftScreen (real browser)', () => {
   });
 
   it('walks a supervisor through the five Close Day steps', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        Promise.resolve(
-          Response.json({
-            data: [
-              {
-                id: 11,
-                userId: 3,
-                userName: 'cashier1',
-                startTime: '2026-11-09T08:00:00.000Z',
-                endTime: '2026-11-09T16:00:00.000Z',
-              },
-            ],
-          }),
-        ),
-      ),
-    );
+    stubShiftApi();
     signInAs('SUPERVISOR');
     await render(<DailyShiftScreen onExit={() => {}} />);
 

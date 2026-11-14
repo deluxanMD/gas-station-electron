@@ -1,58 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { UserRole } from '@/features/auth/constants';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
-import type { ClosedShift } from '@/features/daily-shift/supervisor-shift/types';
-import { fetchShiftsToday } from '@/features/shift/api';
+import {
+  fetchConsolidatedShifts,
+  fetchShiftsToday,
+} from '@/features/shift/api';
 import type {
-  ConsolidatedTotals,
+  ReviewStatus,
   TodayShifts,
   UseReviewShiftsOptions,
   UseReviewShiftsReturn,
   UseTodayShiftsReturn,
 } from './types';
 
-export function consolidateShifts(shifts: ClosedShift[]): ConsolidatedTotals {
-  const totals: ConsolidatedTotals = {
-    creditTerminal: 0,
-    creditHost: 0,
-    debitTerminal: 0,
-    fleet: 0,
-    svRedemption: 0,
-    fuelSales: 0,
-    itemSales: 0,
-    gst: 0,
-    hst: 0,
-    pennyRounding: 0,
-    totalSales: 0,
-    totalPos: 0,
-    totalPayouts: 0,
-    lottoWinner: 0,
-    giftCertificates: 0,
-    redemptions: 0,
-    safedrops: 0,
-    cashOnHand: 0,
-  };
-  for (const { creditTotals: c, dailySummary: d, cashClose: k } of shifts) {
-    totals.creditTerminal += c.creditTerminalCents;
-    totals.creditHost += c.creditHostCents;
-    totals.debitTerminal += c.debitTerminalCents;
-    totals.fleet += c.fleetCents;
-    totals.svRedemption += c.svRedemptionCents;
-    totals.fuelSales += d.fuelSalesCents;
-    totals.itemSales += d.itemSalesCents;
-    totals.gst += d.gstCents;
-    totals.hst += d.hstCents;
-    totals.pennyRounding += d.pennyRoundingCents;
-    totals.totalSales += d.totalSalesCents;
-    totals.totalPos += k.totalPosCents;
-    totals.totalPayouts += k.payouts.reduce((s, p) => s + p.amountCents, 0);
-    totals.lottoWinner += k.lottoWinnerCents;
-    totals.giftCertificates += k.giftCertificatesCents;
-    totals.redemptions += k.redemptionsCents;
-    totals.safedrops += k.safedropsCents;
-    totals.cashOnHand += k.cashOnHandCents;
-  }
-  return totals;
+function isSameSelection(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id));
 }
 
 // Loads today's cashier shifts; `retry` reloads after a failure.
@@ -96,29 +58,56 @@ export function useReviewShifts({
 }: UseReviewShiftsOptions): UseReviewShiftsReturn {
   const { today, retry } = useTodayShifts();
   const reviewedIds = useSupervisorShiftStore((s) => s.selectedShiftIds);
+  const stored = useSupervisorShiftStore((s) => s.consolidated);
   const setSelectedShiftIds = useSupervisorShiftStore(
     (s) => s.setSelectedShiftIds,
   );
+  const setConsolidated = useSupervisorShiftStore((s) => s.setConsolidated);
   const [checkedIds, setCheckedIds] = useState<string[]>(reviewedIds);
-  const [error, setError] = useState<string | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>({
+    status: 'idle',
+  });
+
+  const consolidated =
+    stored && isSameSelection(checkedIds, reviewedIds) ? stored : null;
 
   const toggleShift = (id: string): void => {
-    setError(null);
+    setReviewStatus({ status: 'idle' });
     setCheckedIds((ids) =>
       ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
     );
   };
 
   const review = (): void => {
-    setError(null);
-    setSelectedShiftIds(checkedIds);
+    if (reviewStatus.status === 'loading') return;
+    setReviewStatus({ status: 'loading' });
+    const load = async (): Promise<void> => {
+      try {
+        const result = await fetchConsolidatedShifts(checkedIds.map(Number));
+        setSelectedShiftIds(checkedIds);
+        setConsolidated(result);
+        setReviewStatus({ status: 'idle' });
+      } catch (error) {
+        setReviewStatus({
+          status: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Unable to load the consolidated values.',
+        });
+      }
+    };
+    void load();
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     // TEMP: validation disabled so the flow can be walked through. Restore:
-    // if (checkedIds.length === 0) {
-    //   setError('Select the shifts for the day and click Review before Next.');
+    // if (!consolidated) {
+    //   setReviewStatus({
+    //     status: 'error',
+    //     message: 'Select the shifts for the day and click Review before Next.',
+    //   });
     //   return;
     // }
     onNext();
@@ -130,7 +119,8 @@ export function useReviewShifts({
     checkedIds,
     toggleShift,
     review,
-    error,
+    reviewStatus,
+    consolidated,
     handleSubmit,
   };
 }

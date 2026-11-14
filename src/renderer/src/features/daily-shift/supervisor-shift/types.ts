@@ -1,9 +1,5 @@
 import type { ComponentType } from 'react';
-import type {
-  CashCloseData,
-  CreditTotalsCents,
-  DailySummaryData,
-} from '@/features/daily-shift/cashier-shift/types';
+import type { ConsolidatedShifts } from '@/features/shift/types';
 
 export interface SupervisorShiftProps {
   // Leaves the flow, e.g. back to the home screen.
@@ -30,17 +26,6 @@ export interface UseStepper {
   isLast: boolean;
   next: () => void;
   back: () => void;
-}
-
-// A shift a cashier has closed, with everything they entered.
-export interface ClosedShift {
-  id: string;
-  shiftNumber: number;
-  dayEndDate: string;
-  dayEndTime: string;
-  creditTotals: CreditTotalsCents;
-  dailySummary: DailySummaryData;
-  cashClose: CashCloseData;
 }
 
 export interface FuelGradeEntry {
@@ -80,9 +65,10 @@ export interface FuelDipsData {
 }
 
 export interface SupervisorShiftState {
-  // Shifts the supervisor confirmed with Review as part of the day.
   selectedShiftIds: string[];
   setSelectedShiftIds: (ids: string[]) => void;
+  consolidated: ConsolidatedShifts | null;
+  setConsolidated: (consolidated: ConsolidatedShifts | null) => void;
   fuel: FuelData | null;
   setFuel: (fuel: FuelData) => void;
   fuelDeliveries: FuelDeliveryEntry[];
