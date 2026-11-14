@@ -23,8 +23,7 @@ export interface UseFuelDipsFormReturn {
 export interface FuelDipsRequest {
   shiftId: number;
   userId: number;
-  dipDate: string;
-  dipTime: string;
+  dipAt: string;
   regularTcVolume: number;
   regularUllage90: number;
   premiumTcVolume: number;

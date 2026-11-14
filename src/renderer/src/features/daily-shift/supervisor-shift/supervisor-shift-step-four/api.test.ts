@@ -20,8 +20,7 @@ describe('buildFuelDipsRequest', () => {
     ).toEqual({
       shiftId: 3,
       userId: 8,
-      dipDate: '2026-11-09',
-      dipTime: '22:15',
+      dipAt: new Date('2026-11-09T22:15').toISOString(),
       regularTcVolume: 10_000.5,
       regularUllage90: 2500,
       premiumTcVolume: 20_001,

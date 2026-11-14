@@ -2,6 +2,10 @@ import { ApiError, apiRequest } from '@/lib/api';
 import type { FuelDipsData } from '@/features/daily-shift/supervisor-shift/types';
 import type { FuelDipsRequest } from './types';
 
+// The date and time are entered in local time; send an absolute instant.
+const toInstant = (date: string, time: string): string =>
+  new Date(`${date}T${time}`).toISOString();
+
 const toLitres = (hundredths: number): number => hundredths / 100;
 
 export function buildFuelDipsRequest(
@@ -10,8 +14,7 @@ export function buildFuelDipsRequest(
 ): FuelDipsRequest {
   const request: FuelDipsRequest = {
     ...ids,
-    dipDate: dips.date,
-    dipTime: dips.time,
+    dipAt: toInstant(dips.date, dips.time),
     regularTcVolume: 0,
     regularUllage90: 0,
     premiumTcVolume: 0,
