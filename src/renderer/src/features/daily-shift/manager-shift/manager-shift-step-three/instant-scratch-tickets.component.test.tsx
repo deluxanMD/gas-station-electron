@@ -37,7 +37,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
     vi.unstubAllGlobals();
     resetShiftStore();
     useAuthStore.getState().signOut();
-    useManagerShiftStore.setState({ scratchTickets: null });
+    useManagerShiftStore.getState().reset();
     localStorage.clear();
   });
 
@@ -66,7 +66,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
     await expect.element(page.getByText('Step 3 of 5')).toBeVisible();
   });
 
-  it('calculates Sold and Amount, saves and moves on', async () => {
+  it('calculates Sold and Amount, keeps the values and moves on', async () => {
     const fetchMock = stubManagerShiftApi();
     await openScratchStep();
     await fillAllRows('0', '0');
@@ -97,28 +97,14 @@ describe('Instant Scratch Tickets window (real browser)', () => {
       soldCount: 12,
       amountCents: 6000,
     });
-    const post = fetchMock.mock.calls.find(
-      ([url, init]) =>
-        String(url).endsWith('/scratch-tickets') && init?.method === 'POST',
-    );
-    const body = JSON.parse(post?.[1].body as string) as {
-      userId: number;
-      shiftNumber: number;
-      lines: unknown[];
-    };
-    expect(body.userId).toBe(3);
-    expect(body.shiftNumber).toBe(2);
-    expect(body.lines).toHaveLength(SCRATCH_DENOMINATIONS.length);
-    expect(body.lines).toContainEqual({
-      denomination: 5,
-      openCount: 10,
-      closeCount: 3,
-      activationsCount: 5,
-    });
+    // Nothing is posted until "Post and Close" on the last step.
+    expect(
+      fetchMock.mock.calls.some(([, init]) => init?.method === 'POST'),
+    ).toBe(false);
   });
 
   it('prefills the shift number with the current shift id', async () => {
-    const fetchMock = stubManagerShiftApi();
+    stubManagerShiftApi();
     seedOpenShift({ id: 9 });
     await openScratchStep();
 
@@ -128,13 +114,7 @@ describe('Instant Scratch Tickets window (real browser)', () => {
     await fillAllRows('0', '0');
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
-    const post = fetchMock.mock.calls.find(
-      ([url, init]) =>
-        String(url).endsWith('/scratch-tickets') && init?.method === 'POST',
-    );
-    expect(JSON.parse(post?.[1].body as string)).toMatchObject({
-      shiftNumber: 9,
-    });
+    expect(useManagerShiftStore.getState().scratchTickets?.shiftNumber).toBe(9);
   });
 
   it('prefills Open from the previous report', async () => {
@@ -162,41 +142,5 @@ describe('Instant Scratch Tickets window (real browser)', () => {
 
     await expect.element(page.getByLabelText('$5 open')).toHaveValue('7');
     await expect.element(page.getByLabelText('$10 open')).toHaveValue('0');
-  });
-
-  it('stays on the step and shows the error when saving fails', async () => {
-    stubManagerShiftApi({
-      scratchSave: Response.json(
-        { message: 'A report for this shift is already saved for this date' },
-        { status: 409 },
-      ),
-    });
-    await openScratchStep();
-    await fillAllRows('0', '0');
-    await page.getByRole('button', { name: 'Next' }).click();
-
-    await expect
-      .element(page.getByText(/already saved for this date/))
-      .toBeVisible();
-    await expect.element(page.getByText('Step 3 of 5')).toBeVisible();
-    expect(useManagerShiftStore.getState().scratchTickets).toBeNull();
-  });
-
-  it('does not save again when returning with unchanged values', async () => {
-    const fetchMock = stubManagerShiftApi();
-    await openScratchStep();
-    await fillAllRows('0', '0');
-    await page.getByRole('button', { name: 'Next' }).click();
-    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Back' }).click();
-    await page.getByRole('button', { name: 'Next' }).click();
-    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
-
-    const posts = fetchMock.mock.calls.filter(
-      ([url, init]) =>
-        String(url).endsWith('/scratch-tickets') && init?.method === 'POST',
-    );
-    expect(posts).toHaveLength(1);
   });
 });

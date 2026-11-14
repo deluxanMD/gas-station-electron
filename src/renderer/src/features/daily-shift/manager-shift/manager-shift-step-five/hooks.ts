@@ -1,9 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { useAuthStore } from '@/features/auth/auth-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
-import { useOpenShift } from '@/features/shift/hooks';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import {
   formatCentsAsAmount,
@@ -12,10 +9,6 @@ import {
   parseAmountToCents,
   parseSignedAmountToCents,
 } from '@/lib/money';
-import {
-  buildLottoReconciliationRequest,
-  saveLottoReconciliation,
-} from './api';
 import { EMPTY_LOTTO_RECONCILIATION } from './constants';
 import { lottoReconciliationSchema } from './schema';
 import type {
@@ -65,10 +58,6 @@ export function useLottoReconciliationForm({
         ),
         bullLottoWinner: formatCentsAsAmount(cashClose?.lottoWinnerCents ?? 0),
       };
-
-  const openShift = useOpenShift();
-  const dbUserId = useAuthStore((s) => s.dbUserId);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const form = useForm<LottoReconciliationValues>({
     resolver: zodResolver(lottoReconciliationSchema),
@@ -124,8 +113,10 @@ export function useLottoReconciliationForm({
     summaryTotal: net + activationsNet + toSignedCents(cashNet),
   };
 
-  const handleSubmit = form.handleSubmit(async (values) => {
-    const data = {
+  // Nothing is sent to the API here: "Post and Close" saves the scratch tickets,
+  // the lotto reports and this reconciliation together, then closes the shift.
+  const handleSubmit = form.handleSubmit((values) => {
+    setLottoReconciliation({
       bullockCents: parseAmountToCents(values.bullock),
       bullPayoutsCents: parseAmountToCents(values.bullPayouts),
       bullLottoWinnerCents: parseAmountToCents(values.bullLottoWinner),
@@ -135,31 +126,7 @@ export function useLottoReconciliationForm({
       cashNetCents: parseSignedAmountToCents(values.cashNet),
       attribution: values.attribution,
       totalCents: figures.summaryTotal,
-    };
-
-    if (JSON.stringify(data) !== JSON.stringify(saved)) {
-      if (dbUserId === null || !openShift) {
-        setSaveError('There is no open shift to save the reconciliation to.');
-        return;
-      }
-      setSaveError(null);
-      try {
-        await saveLottoReconciliation(
-          buildLottoReconciliationRequest(
-            { shiftId: openShift.id, userId: dbUserId },
-            data,
-          ),
-        );
-      } catch (error) {
-        setSaveError(
-          error instanceof Error
-            ? error.message
-            : 'Saving the reconciliation failed.',
-        );
-        return;
-      }
-    }
-    setLottoReconciliation(data);
+    });
     onNext();
   });
 
@@ -168,6 +135,5 @@ export function useLottoReconciliationForm({
     handleSubmit,
     figures,
     needsAttribution: figures.summaryTotal !== 0 && attribution === '',
-    saveError,
   };
 }

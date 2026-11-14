@@ -76,12 +76,10 @@ export interface UseLottoReportsFormOptions {
 export interface UseLottoReportsFormReturn {
   form: UseFormReturn<LottoReportsValues>;
   handleSubmit: ReturnType<UseFormReturn<LottoReportsValues>['handleSubmit']>;
-  // Per slip column, plus the Net column (day end minus previous day).
   calculated: Record<LottoColumn, LottoCalculated>;
   previousDay: LottoCalculated;
   net: LottoCalculated;
   previousDayStatus: PreviousDayStatus;
   retryPreviousDay: () => void;
-  // Set when saving failed; the manager stays on the step.
-  saveError: string | null;
+  previousDayError: string | null;
 }

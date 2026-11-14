@@ -1,24 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { useAuthStore } from '@/features/auth/auth-store';
-import { useOpenShift } from '@/features/shift/hooks';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import type {
   LottoColumn,
   LottoInputRow,
-  LottoReportsData,
 } from '@/features/daily-shift/manager-shift/types';
 import {
   formatCentsAsAmount,
   isValidAmount,
   parseAmountToCents,
 } from '@/lib/money';
-import {
-  buildLottoReportRequest,
-  fetchLatestLottoDayEnd,
-  saveLottoReport,
-} from './api';
+import { fetchLatestLottoDayEnd } from './api';
 import {
   EMPTY_LOTTO_REPORTS,
   LOTTO_COLUMNS,
@@ -101,10 +94,6 @@ export function useLottoReportsForm({
     defaultValues,
   });
 
-  const openShift = useOpenShift();
-  const dbUserId = useAuthStore((s) => s.dbUserId);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
   // Coming back to the step keeps the figures it was saved with; otherwise they
   // are loaded. A failed lookup blocks Next rather than saving a wrong Net.
   const hasSaved = saved !== null;
@@ -113,6 +102,7 @@ export function useLottoReportsForm({
       ? { status: 'ready', amounts: saved.previousDay }
       : { status: 'loading' },
   );
+  const [previousDayError, setPreviousDayError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (hasSaved) return;
@@ -144,6 +134,7 @@ export function useLottoReportsForm({
   }, [attempt, hasSaved]);
 
   const retryPreviousDay = (): void => {
+    setPreviousDayError(null);
     setPreviousDayStatus({ status: 'loading' });
     setAttempt((n) => n + 1);
   };
@@ -171,9 +162,11 @@ export function useLottoReportsForm({
     ]),
   ) as LottoCalculated;
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  // Nothing is sent to the API here: the values wait in the store until
+  // "Post and Close" on the last step saves everything.
+  const handleSubmit = form.handleSubmit((values) => {
     if (previousDayStatus.status !== 'ready') {
-      setSaveError(
+      setPreviousDayError(
         previousDayStatus.status === 'loading'
           ? 'The previous day figures are still loading.'
           : 'The previous day figures could not be loaded. Retry before continuing.',
@@ -185,7 +178,8 @@ export function useLottoReportsForm({
       fullDay: columnInputs(values.rows, 'fullDay'),
       dayEnd: columnInputs(values.rows, 'dayEnd'),
     };
-    const data: LottoReportsData = {
+    setPreviousDayError(null);
+    setLottoReports({
       dates: values.dates,
       reportTimes: values.reportTimes,
       columns,
@@ -195,33 +189,7 @@ export function useLottoReportsForm({
       cashRedemCents:
         net.onlineCashRedem + net.sportsCashRedem + net.instantCashRedem,
       activationsCents: net.activations,
-    };
-
-    // The stored values are only set after a successful save, so identical ones
-    // mean this report is already saved (the manager came back to this step).
-    if (JSON.stringify(data) !== JSON.stringify(saved)) {
-      if (dbUserId === null || !openShift) {
-        setSaveError('There is no open shift to save the lotto reports to.');
-        return;
-      }
-      setSaveError(null);
-      try {
-        await saveLottoReport(
-          buildLottoReportRequest(
-            { shiftId: openShift.id, userId: dbUserId },
-            data,
-          ),
-        );
-      } catch (error) {
-        setSaveError(
-          error instanceof Error
-            ? error.message
-            : 'Saving the lotto reports failed.',
-        );
-        return;
-      }
-    }
-    setLottoReports(data);
+    });
     onNext();
   });
 
@@ -233,6 +201,6 @@ export function useLottoReportsForm({
     net,
     previousDayStatus,
     retryPreviousDay,
-    saveError,
+    previousDayError,
   };
 }

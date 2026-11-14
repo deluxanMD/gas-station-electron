@@ -37,7 +37,7 @@ describe('Lotto Reports window (real browser)', () => {
     vi.unstubAllGlobals();
     resetShiftStore();
     useAuthStore.getState().signOut();
-    useManagerShiftStore.setState({ scratchTickets: null, lottoReports: null });
+    useManagerShiftStore.getState().reset();
     localStorage.clear();
   });
 
@@ -128,77 +128,6 @@ describe('Lotto Reports window (real browser)', () => {
       .toHaveTextContent('500.00');
   });
 
-  it('saves the four slips in cents and moves on', async () => {
-    const fetchMock = await openLottoStep();
-    await page.getByLabelText('Date - Day end').fill('2026-11-08');
-    await page.getByLabelText('Time of Report - Day end').fill('23:15');
-    await page
-      .getByLabelText('On-Line Products Net Sales - Day end')
-      .fill('1000.50');
-    await page.getByRole('button', { name: 'Next' }).click();
-    await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
-
-    const post = fetchMock.mock.calls.find(
-      ([url, init]) =>
-        String(url).endsWith('/lotto-reports') && init?.method === 'POST',
-    );
-    const body = JSON.parse(post?.[1].body as string) as {
-      shiftId: number;
-      userId: number;
-      slips: {
-        slipType: string;
-        reportDate: string | null;
-        reportTime: string | null;
-        amounts: Record<string, number>;
-      }[];
-    };
-    expect(body.shiftId).toBe(9);
-    expect(body.userId).toBe(3);
-    expect(body.slips.map((slip) => slip.slipType)).toEqual([
-      'PREVIOUS_DAY',
-      'YESTERDAY',
-      'FULL_DAY',
-      'DAY_END',
-    ]);
-    const dayEnd = body.slips[3];
-    expect(dayEnd.reportDate).toBe('2026-11-08');
-    expect(dayEnd.reportTime).toBe('23:15');
-    expect(dayEnd.amounts.onlineNetSales).toBe(100_050);
-    expect(body.slips[1].reportDate).toBeNull();
-  });
-
-  it('stays on the step and shows the error when saving fails', async () => {
-    await openLottoStep({
-      lottoSave: Response.json(
-        { message: 'Already saved for this shift' },
-        { status: 409 },
-      ),
-    });
-    await page.getByRole('button', { name: 'Next' }).click();
-
-    await expect
-      .element(page.getByText('Already saved for this shift'))
-      .toBeVisible();
-    await expect.element(page.getByText('Step 4 of 5')).toBeVisible();
-    expect(useManagerShiftStore.getState().lottoReports).toBeNull();
-  });
-
-  it('does not save again when returning with unchanged values', async () => {
-    const fetchMock = await openLottoStep();
-    await page.getByRole('button', { name: 'Next' }).click();
-    await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Back' }).click();
-    await page.getByRole('button', { name: 'Next' }).click();
-    await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
-
-    const posts = fetchMock.mock.calls.filter(
-      ([url, init]) =>
-        String(url).endsWith('/lotto-reports') && init?.method === 'POST',
-    );
-    expect(posts).toHaveLength(1);
-  });
-
   it('blocks Next until the previous day figures load, and retries', async () => {
     await openLottoStep({
       lottoLatest: Response.json({ message: 'Database down' }, { status: 500 }),
@@ -216,5 +145,21 @@ describe('Lotto Reports window (real browser)', () => {
       .not.toBeInTheDocument();
     await page.getByRole('button', { name: 'Next' }).click();
     await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
+  });
+
+  it('keeps the values and posts nothing on Next', async () => {
+    const fetchMock = await openLottoStep();
+    await page
+      .getByLabelText('On-Line Products Net Sales - Day end')
+      .fill('1000.50');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
+
+    const columns = useManagerShiftStore.getState().lottoReports?.columns;
+    expect(columns?.dayEnd.onlineNetSales).toBe(100_050);
+    // Posted together with the other reports by "Post and Close".
+    expect(
+      fetchMock.mock.calls.some(([, init]) => init?.method === 'POST'),
+    ).toBe(false);
   });
 });

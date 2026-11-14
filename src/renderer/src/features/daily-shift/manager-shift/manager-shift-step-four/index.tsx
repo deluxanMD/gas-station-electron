@@ -35,7 +35,7 @@ export function LottoReports({
     net,
     previousDayStatus,
     retryPreviousDay,
-    saveError,
+    previousDayError,
   } = useLottoReportsForm({ onNext });
 
   return (
@@ -181,9 +181,9 @@ export function LottoReports({
             </TableBody>
           </Table>
         </div>
-        {saveError ? (
+        {previousDayError ? (
           <p role="alert" className="mt-2 text-sm text-destructive">
-            {saveError}
+            {previousDayError}
           </p>
         ) : null}
       </form>

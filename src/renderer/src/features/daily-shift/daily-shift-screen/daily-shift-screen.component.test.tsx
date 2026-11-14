@@ -27,11 +27,7 @@ describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     resetShiftStore();
-    useManagerShiftStore.setState({
-      scratchTickets: null,
-      lottoReports: null,
-      lottoReconciliation: null,
-    });
+    useManagerShiftStore.getState().reset();
     useSupervisorShiftStore.setState({
       selectedShiftIds: [],
       fuel: null,

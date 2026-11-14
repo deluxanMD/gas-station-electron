@@ -23,10 +23,7 @@ describe('Review Cashier Reports window (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     useAuthStore.getState().signOut();
-    useManagerShiftStore.setState({
-      selectedShiftIds: [],
-      consolidated: null,
-    });
+    useManagerShiftStore.getState().reset();
     localStorage.clear();
   });
 

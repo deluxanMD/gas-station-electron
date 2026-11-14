@@ -1,17 +1,16 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFinishShift } from '@/features/shift/hooks';
 import { MANAGER_STEPS } from './constants';
-import { useStepper } from './hooks';
+import { useFinishManagerShift, useStepper } from './hooks';
 import type { ManagerShiftProps } from './types';
 
 export function ManagerShift({ onExit }: ManagerShiftProps): JSX.Element {
   const { stepIndex, isFirst, isLast, next, back } = useStepper(
     MANAGER_STEPS.length,
   );
-  // The last step ends the shift; the user leaves the flow once it is closed.
-  const { finish, closing, error } = useFinishShift(onExit);
+  // The last step saves the reports and ends the shift; the user leaves the flow once it is closed.
+  const { finish, closing, error } = useFinishManagerShift(onExit);
   const step = MANAGER_STEPS[stepIndex];
   const StepComponent = step.component;
 

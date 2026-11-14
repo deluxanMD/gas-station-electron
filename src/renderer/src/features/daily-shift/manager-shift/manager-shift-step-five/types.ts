@@ -78,5 +78,4 @@ export interface UseLottoReconciliationFormReturn {
   figures: LottoReconciliationFigures;
   // Over/short exists but is not attributed yet.
   needsAttribution: boolean;
-  saveError: string | null;
 }

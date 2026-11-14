@@ -55,6 +55,4 @@ export interface UseScratchTicketsFormReturn {
   handleSubmit: ReturnType<UseFormReturn<ScratchTicketsValues>['handleSubmit']>;
   calculations: ScratchTicketCalculation[];
   totalAmountCents: number;
-  // Set when saving failed; the manager stays on the step.
-  saveError: string | null;
 }

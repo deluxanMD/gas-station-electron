@@ -1,14 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { useAuthStore } from '@/features/auth/auth-store';
 import { useOpenShift } from '@/features/shift/hooks';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
-import {
-  buildScratchTicketsRequest,
-  fetchLatestScratchTickets,
-  saveScratchTickets,
-} from './api';
+import { fetchLatestScratchTickets } from './api';
 import { EMPTY_SCRATCH_TICKETS, SCRATCH_DENOMINATIONS } from './constants';
 import { scratchTicketsSchema } from './schema';
 import type {
@@ -60,9 +55,6 @@ export function useScratchTicketsForm({
         shiftNumber: openShift ? String(openShift.id) : '',
       };
 
-  const dbUserId = useAuthStore((s) => s.dbUserId);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
   const form = useForm<ScratchTicketsValues>({
     resolver: zodResolver(scratchTicketsSchema),
     defaultValues,
@@ -106,7 +98,7 @@ export function useScratchTicketsForm({
     0,
   );
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = form.handleSubmit((values) => {
     const savedRows = values.rows.map((row, index) => {
       const denomination = SCRATCH_DENOMINATIONS[index];
       const { soldCount, amountCents } = calculate(row, denomination);
@@ -119,34 +111,13 @@ export function useScratchTicketsForm({
         amountCents,
       };
     });
-    const data = {
+    setScratchTickets({
       shiftNumber: Number(values.shiftNumber),
       rows: savedRows,
       totalAmountCents: savedRows.reduce((s, r) => s + r.amountCents, 0),
-    };
-
-    // The stored values are only set after a successful save, so identical ones
-    // mean this sheet is already saved (the manager came back to this step).
-    if (JSON.stringify(data) !== JSON.stringify(saved)) {
-      if (dbUserId === null) {
-        setSaveError('Sign in again to save the scratch tickets.');
-        return;
-      }
-      setSaveError(null);
-      try {
-        await saveScratchTickets(buildScratchTicketsRequest(dbUserId, data));
-      } catch (error) {
-        setSaveError(
-          error instanceof Error
-            ? error.message
-            : 'Saving the scratch tickets failed.',
-        );
-        return;
-      }
-    }
-    setScratchTickets(data);
+    });
     onNext();
   });
 
-  return { form, handleSubmit, calculations, totalAmountCents, saveError };
+  return { form, handleSubmit, calculations, totalAmountCents };
 }

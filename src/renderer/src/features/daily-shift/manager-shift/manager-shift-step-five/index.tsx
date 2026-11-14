@@ -26,7 +26,7 @@ export function LottoReconciliation({
   formId,
   onNext,
 }: LottoReconciliationProps): JSX.Element {
-  const { form, handleSubmit, figures, needsAttribution, saveError } =
+  const { form, handleSubmit, figures, needsAttribution } =
     useLottoReconciliationForm({ onNext });
 
   return (
@@ -128,11 +128,6 @@ export function LottoReconciliation({
             </span>
           </div>
         </div>
-        {saveError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {saveError}
-          </p>
-        ) : null}
       </form>
     </Form>
   );
