@@ -11,6 +11,7 @@ export const MANAGER_STEPS: readonly ManagerStep[] = [
   {
     id: 'review-cashier-reports',
     title: 'Review Cashier Reports',
+    formId: 'review-cashier-reports-form',
     component: ReviewCashierReports,
   },
   {

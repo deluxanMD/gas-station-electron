@@ -3,6 +3,10 @@ import type { ManagerShiftState } from './types';
 
 // In-memory only: values must survive Back/Next but not an app restart.
 export const useManagerShiftStore = create<ManagerShiftState>()((set) => ({
+  selectedShiftIds: [],
+  setSelectedShiftIds: (selectedShiftIds) => set({ selectedShiftIds }),
+  consolidated: null,
+  setConsolidated: (consolidated) => set({ consolidated }),
   scratchTickets: null,
   setScratchTickets: (scratchTickets) => set({ scratchTickets }),
   lottoReports: null,

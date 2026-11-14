@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { ConsolidatedShifts } from '@/features/shift/types';
 
 export interface ManagerShiftProps {
   // Leaves the flow, e.g. back to the home screen.
@@ -82,6 +83,10 @@ export interface LottoReconciliationData {
 }
 
 export interface ManagerShiftState {
+  selectedShiftIds: string[];
+  setSelectedShiftIds: (ids: string[]) => void;
+  consolidated: ConsolidatedShifts | null;
+  setConsolidated: (consolidated: ConsolidatedShifts | null) => void;
   scratchTickets: ScratchTicketsData | null;
   setScratchTickets: (data: ScratchTicketsData) => void;
   lottoReports: LottoReportsData | null;

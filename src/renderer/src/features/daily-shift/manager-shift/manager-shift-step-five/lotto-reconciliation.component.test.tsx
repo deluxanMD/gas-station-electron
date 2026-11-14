@@ -48,7 +48,7 @@ describe('Lotto Reconciliation window (real browser)', () => {
     seedOpenShift();
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(Response.json({ data: {} }))),
+      vi.fn(() => Promise.resolve(Response.json({ data: [] }))),
     );
   });
 
@@ -119,7 +119,10 @@ describe('Lotto Reconciliation window (real browser)', () => {
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
     // Managers don't track shifts, so nothing is closed on the API.
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.stringMatching(/\/close$/),
+      expect.anything(),
+    );
     expect(useManagerShiftStore.getState().lottoReconciliation).toEqual({
       bullockCents: 80_000,
       bullPayoutsCents: 10_000,
