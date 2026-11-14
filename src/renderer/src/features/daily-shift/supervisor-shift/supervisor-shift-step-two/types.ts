@@ -17,8 +17,6 @@ export interface UseFuelEntryFormOptions {
 export interface UseFuelEntryFormReturn {
   form: UseFormReturn<FuelValues>;
   handleSubmit: ReturnType<UseFormReturn<FuelValues>['handleSubmit']>;
-  // Set when the API rejected the save; the step stays open for a retry.
-  submitError: string | null;
 }
 
 export type FuelRequestGrade =

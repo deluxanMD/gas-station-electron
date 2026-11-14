@@ -1,17 +1,16 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFinishShift } from '@/features/shift/hooks';
 import { SUPERVISOR_STEPS } from './constants';
-import { useStepper } from './hooks';
+import { useFinishSupervisorShift, useStepper } from './hooks';
 import type { SupervisorShiftProps } from './types';
 
 export function SupervisorShift({ onExit }: SupervisorShiftProps): JSX.Element {
   const { stepIndex, isFirst, isLast, next, back } = useStepper(
     SUPERVISOR_STEPS.length,
   );
-  // The last step ends the shift; the user leaves the flow once it is closed.
-  const { finish, closing, error } = useFinishShift(onExit);
+  // The last step saves the shift and ends it; the user leaves the flow once it is closed.
+  const { finish, closing, error } = useFinishSupervisorShift(onExit);
   const step = SUPERVISOR_STEPS[stepIndex];
   const StepComponent = step.component;
 

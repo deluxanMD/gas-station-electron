@@ -28,6 +28,12 @@ export interface UseStepper {
   back: () => void;
 }
 
+export interface UseFinishSupervisorShift {
+  finish: () => void;
+  closing: boolean;
+  error: string | null;
+}
+
 export interface FuelGradeEntry {
   grade: string;
   // Litres in hundredths, so sums stay exact.
@@ -41,7 +47,6 @@ export interface FuelData {
 }
 
 export interface FuelDeliveryEntry {
-  id: string;
   date: string; // YYYY-MM-DD
   bolNumber: string;
   // Litres in hundredths, so sums stay exact.
@@ -71,8 +76,9 @@ export interface SupervisorShiftState {
   setConsolidated: (consolidated: ConsolidatedShifts | null) => void;
   fuel: FuelData | null;
   setFuel: (fuel: FuelData) => void;
-  fuelDeliveries: FuelDeliveryEntry[];
-  setFuelDeliveries: (deliveries: FuelDeliveryEntry[]) => void;
+  // Null when the supervisor skipped the delivery.
+  fuelDelivery: FuelDeliveryEntry | null;
+  setFuelDelivery: (delivery: FuelDeliveryEntry | null) => void;
   fuelDips: FuelDipsData | null;
   setFuelDips: (dips: FuelDipsData) => void;
 }

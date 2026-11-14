@@ -38,7 +38,7 @@ describe('Add Fuel Dips window (real browser)', () => {
     useSupervisorShiftStore.setState({
       selectedShiftIds: [],
       fuel: null,
-      fuelDeliveries: [],
+      fuelDelivery: null,
       fuelDips: null,
     });
     localStorage.clear();

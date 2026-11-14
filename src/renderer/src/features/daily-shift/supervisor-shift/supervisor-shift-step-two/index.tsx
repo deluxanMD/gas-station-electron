@@ -15,7 +15,7 @@ const ROW_CLASS =
   'grid grid-cols-[1fr_1.5fr_1.5fr] items-start gap-2 px-2 py-2';
 
 export function FuelEntry({ formId, onNext }: FuelEntryProps): JSX.Element {
-  const { form, handleSubmit, submitError } = useFuelEntryForm({ onNext });
+  const { form, handleSubmit } = useFuelEntryForm({ onNext });
 
   return (
     <Form {...form}>
@@ -95,11 +95,6 @@ export function FuelEntry({ formId, onNext }: FuelEntryProps): JSX.Element {
             />
           </div>
         </div>
-        {submitError ? (
-          <p role="alert" className="mt-4 text-sm text-destructive">
-            {submitError}
-          </p>
-        ) : null}
       </form>
     </Form>
   );

@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState, type FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
-import { parseAmountToCents } from '@/lib/money';
+import type { FuelDeliveryEntry } from '@/features/daily-shift/supervisor-shift/types';
+import { formatCentsAsAmount, parseAmountToCents } from '@/lib/money';
 import { EMPTY_FUEL_DELIVERY } from './constants';
 import { fuelDeliverySchema } from './schema';
 import type {
@@ -15,49 +16,52 @@ function isBlank(values: FuelDeliveryValues): boolean {
   return Object.values(values).every((value) => value.trim() === '');
 }
 
+function toValues(saved: FuelDeliveryEntry | null): FuelDeliveryValues {
+  if (!saved) return EMPTY_FUEL_DELIVERY;
+  return {
+    date: saved.date,
+    bolNumber: saved.bolNumber,
+    reg: formatCentsAsAmount(saved.regCentiLitres),
+    prem: formatCentsAsAmount(saved.premCentiLitres),
+    diesel: formatCentsAsAmount(saved.dieselCentiLitres),
+    total: formatCentsAsAmount(saved.totalCentiLitres),
+  };
+}
+
 export function useFuelDeliveryForm({
   onNext,
 }: UseFuelDeliveryFormOptions): UseFuelDeliveryFormReturn {
-  const deliveries = useSupervisorShiftStore((s) => s.fuelDeliveries);
-  const setDeliveries = useSupervisorShiftStore((s) => s.setFuelDeliveries);
-  const [error, setError] = useState<string | null>(null);
+  const saved = useSupervisorShiftStore((s) => s.fuelDelivery);
+  const setFuelDelivery = useSupervisorShiftStore((s) => s.setFuelDelivery);
 
   const form = useForm<FuelDeliveryValues>({
     resolver: zodResolver(fuelDeliverySchema),
-    defaultValues: EMPTY_FUEL_DELIVERY,
+    defaultValues: toValues(saved),
   });
 
-  const addDelivery = form.handleSubmit((values) => {
-    setError(null);
-    setDeliveries([
-      ...deliveries,
-      {
-        id: crypto.randomUUID(),
-        date: values.date,
-        bolNumber: values.bolNumber,
-        regCentiLitres: parseAmountToCents(values.reg),
-        premCentiLitres: parseAmountToCents(values.prem),
-        dieselCentiLitres: parseAmountToCents(values.diesel),
-        totalCentiLitres: parseAmountToCents(values.total),
-      },
-    ]);
-    form.reset(EMPTY_FUEL_DELIVERY);
+  // Saved to the API with the rest of the shift on the last step.
+  const keep = form.handleSubmit((values) => {
+    setFuelDelivery({
+      date: values.date,
+      bolNumber: values.bolNumber.trim(),
+      regCentiLitres: parseAmountToCents(values.reg),
+      premCentiLitres: parseAmountToCents(values.prem),
+      dieselCentiLitres: parseAmountToCents(values.diesel),
+      totalCentiLitres: parseAmountToCents(values.total),
+    });
+    onNext();
   });
 
-  const removeDelivery = (id: string): void => {
-    setDeliveries(deliveries.filter((delivery) => delivery.id !== id));
-  };
-
-  // Next: deliveries are optional, but don't silently drop a started entry.
+  // A delivery is optional, so an empty form just moves on.
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    if (!isBlank(form.getValues())) {
-      setError('Click Add Fuel Delivery to save this delivery, or clear it.');
+    if (isBlank(form.getValues())) {
+      setFuelDelivery(null);
+      onNext();
       return;
     }
-    setError(null);
-    onNext();
+    void keep();
   };
 
-  return { form, deliveries, addDelivery, removeDelivery, error, handleSubmit };
+  return { form, handleSubmit };
 }
