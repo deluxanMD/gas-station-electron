@@ -1,4 +1,4 @@
-import type { FuelValues } from './types';
+import type { FuelRequestGrade, FuelValues } from './types';
 
 export const FUEL_GRADES = [
   'BIODIESEL',
@@ -12,3 +12,12 @@ export const EMPTY_FUEL: FuelValues = {
   grades: FUEL_GRADES.map(() => ({ volume: '', total: '' })),
   totalVolume: '',
 };
+
+// Request field prefix for each grade, in FUEL_GRADES order.
+export const FUEL_REQUEST_KEYS: readonly FuelRequestGrade[] = [
+  'biodiesel',
+  'reg87',
+  'extra89',
+  'supr91',
+  'plus93',
+];

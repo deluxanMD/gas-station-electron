@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
+import { stubShiftApi } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-two/constants';
@@ -14,6 +16,8 @@ function encodePart(value: object): string {
 async function openDipsStep(): Promise<void> {
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u2', role: 'SUPERVISOR' })}.sig`;
   useAuthStore.getState().signIn(token);
+  stubShiftApi();
+  seedOpenShift();
   await render(<DailyShiftScreen onExit={() => {}} />);
   await page.getByRole('button', { name: 'Next' }).click();
   for (const grade of FUEL_GRADES) {
@@ -28,6 +32,8 @@ async function openDipsStep(): Promise<void> {
 
 describe('Add Fuel Dips window (real browser)', () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
+    resetShiftStore();
     useAuthStore.getState().signOut();
     useSupervisorShiftStore.setState({
       selectedShiftIds: [],

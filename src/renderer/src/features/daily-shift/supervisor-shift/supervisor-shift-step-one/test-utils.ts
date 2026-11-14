@@ -50,17 +50,20 @@ export const CONSOLIDATED: ConsolidatedShifts = {
 interface ShiftApiStub {
   shifts?: Response;
   consolidated?: Response;
+  fuel?: Response;
 }
 
-// Answers the shift list and the Review call; anything else fails the test.
+// Answers the shift list, the Review call and the fuel save; anything else fails the test.
 export function stubShiftApi({
   shifts = Response.json({ data: TODAY_SHIFTS }),
   consolidated = Response.json({ data: CONSOLIDATED }),
+  fuel = Response.json({ data: { id: 1 } }, { status: 201 }),
 }: ShiftApiStub = {}): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((url: string) => {
     if (url.endsWith('/shifts/consolidated')) {
       return Promise.resolve(consolidated.clone());
     }
+    if (url.endsWith('/fuel')) return Promise.resolve(fuel.clone());
     return /\/shifts\?role=CASHIER$/.test(url)
       ? Promise.resolve(shifts.clone())
       : Promise.reject(new Error(`Unexpected request: ${url}`));
