@@ -7,3 +7,7 @@ export enum UserRole {
   Dispatch = 'DISPATCH',
   Accounting = 'ACCOUNTING',
 }
+
+export enum AuthScheme {
+  Bearer = 'Bearer',
+}

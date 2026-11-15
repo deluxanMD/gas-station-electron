@@ -7,8 +7,12 @@ out
 test-results
 playwright-report
 coverage
+.vitest
 
 # Env files (keep .env.example)
 .env
 .env.*
 !.env.example
+
+# TypeScript incremental build cache
+*.tsbuildinfo

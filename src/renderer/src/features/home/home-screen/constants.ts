@@ -8,3 +8,5 @@ export const MODULES = [
   { id: 'dispatch', title: 'Dispatch' },
   { id: 'fuel-p-and-l', title: 'Fuel P&L' },
 ] as const satisfies readonly { id: ModuleId; title: string }[];
+
+export const DAILY_SHIFT_MODULE_ID = 'daily-shift';

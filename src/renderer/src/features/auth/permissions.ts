@@ -22,6 +22,7 @@ export const ACCESS = {
       UserRole.Supervisor,
       UserRole.Cashier,
     ],
+    trackShift: [UserRole.Manager, UserRole.Supervisor, UserRole.Cashier],
   },
   'wetstock-management': {
     view: [UserRole.Owner, UserRole.Manager, UserRole.Supervisor],
