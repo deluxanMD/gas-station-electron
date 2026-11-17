@@ -19,6 +19,9 @@ Always run `typecheck` and `lint` after changes. Don't claim a UI change works u
 - `src/preload` — the only bridge between main and renderer. Expose a minimal, typed API via `contextBridge`; update `index.d.ts` with it.
 - `src/renderer/src` — React UI. No Node/Electron imports here; talk to main only through the preload API.
 
+- `src/shared` — channel names and payload types used by main, preload and renderer (`ipc.ts`); import types only, no runtime code from the renderer.
+- `src/main/db` — the on-device SQLite database (`better-sqlite3`, WAL, `synchronous = FULL`) in the user-data folder, with append-only migrations tracked by `user_version`. `src/main/outbox` holds the queue of writes waiting for the server and its IPC handlers (payloads validated with Zod). Main-process tests run in the Vitest `main` project (plain Node), picked up by `npm run test:unit`.
+
 Organize renderer code by feature, not by file type:
 
 ```

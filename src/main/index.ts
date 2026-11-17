@@ -2,6 +2,9 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
+import { openDatabase } from './db/database';
+import { Outbox } from './outbox/outbox';
+import { registerOutboxIpc } from './outbox/ipc';
 
 function createWindow(): void {
   // Create the browser window.
@@ -51,6 +54,11 @@ app
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window);
     });
+
+    // Writes made on this device wait here until the server confirms them.
+    const db = openDatabase(join(app.getPath('userData'), 'gas-station.db'));
+    registerOutboxIpc(new Outbox(db));
+    app.on('will-quit', () => db.close());
 
     // IPC test
     // eslint-disable-next-line no-console
