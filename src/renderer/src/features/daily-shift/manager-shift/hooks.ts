@@ -1,20 +1,13 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCan } from '@/features/auth/hooks';
-import { endShift, useOpenShift } from '@/features/shift/hooks';
+import { useOpenShift } from '@/features/shift/hooks';
+import { finishShift } from '@/features/shift/local';
+import { localDateString } from '@/lib/date';
 import type { UseFinishShift } from '@/features/shift/types';
-import {
-  buildLottoReconciliationRequest,
-  saveLottoReconciliation,
-} from './manager-shift-step-five/api';
-import {
-  buildLottoReportRequest,
-  saveLottoReport,
-} from './manager-shift-step-four/api';
-import {
-  buildScratchTicketsRequest,
-  saveScratchTickets,
-} from './manager-shift-step-three/api';
+import { buildLottoReconciliationRequest } from './manager-shift-step-five/api';
+import { buildLottoReportRequest } from './manager-shift-step-four/api';
+import { buildScratchTicketsRequest } from './manager-shift-step-three/api';
 import { useManagerShiftStore } from './manager-shift-store';
 import type { UseStepper } from './types';
 
@@ -28,10 +21,6 @@ export function useStepper(stepCount: number): UseStepper {
     next: () => setStepIndex((i) => Math.min(i + 1, stepCount - 1)),
     back: () => setStepIndex((i) => Math.max(i - 1, 0)),
   };
-}
-
-function isSaved(current: unknown, previous: unknown): boolean {
-  return JSON.stringify(current) === JSON.stringify(previous);
 }
 
 export function useFinishManagerShift(onExit: () => void): UseFinishShift {
@@ -52,13 +41,8 @@ export function useFinishManagerShift(onExit: () => void): UseFinishShift {
       setError('There is no open shift to close.');
       return;
     }
-    const {
-      scratchTickets,
-      lottoReports,
-      lottoReconciliation,
-      saved,
-      markSaved,
-    } = useManagerShiftStore.getState();
+    const { scratchTickets, lottoReports, lottoReconciliation } =
+      useManagerShiftStore.getState();
     if (!scratchTickets || !lottoReports || !lottoReconciliation) {
       setError(
         'Complete the scratch tickets, lotto reports and reconciliation before posting.',
@@ -67,25 +51,35 @@ export function useFinishManagerShift(onExit: () => void): UseFinishShift {
     }
     setClosing(true);
     setError(null);
-    const ids = { shiftId: shift.id, userId: dbUserId };
+    const ids = { shiftClientId: shift.clientId, userId: dbUserId };
     try {
-      if (!isSaved(scratchTickets, saved.scratchTickets)) {
-        await saveScratchTickets(
-          buildScratchTicketsRequest(dbUserId, scratchTickets),
-        );
-        markSaved('scratchTickets', scratchTickets);
-      }
-      if (!isSaved(lottoReports, saved.lottoReports)) {
-        await saveLottoReport(buildLottoReportRequest(ids, lottoReports));
-        markSaved('lottoReports', lottoReports);
-      }
-      if (!isSaved(lottoReconciliation, saved.lottoReconciliation)) {
-        await saveLottoReconciliation(
-          buildLottoReconciliationRequest(ids, lottoReconciliation),
-        );
-        markSaved('lottoReconciliation', lottoReconciliation);
-      }
-      await endShift(shift.id);
+      // All three reports and the close are saved on this device together; the sync engine sends them to the server
+      // when it can be reached.
+      await finishShift(shift, [
+        {
+          entity: 'scratch-tickets',
+          path: 'scratch-tickets',
+          payload: {
+            ...buildScratchTicketsRequest(
+              dbUserId,
+              scratchTickets,
+              localDateString(new Date()),
+            ),
+          },
+        },
+        {
+          entity: 'lotto-report',
+          path: 'lotto-reports',
+          payload: { ...buildLottoReportRequest(ids, lottoReports) },
+        },
+        {
+          entity: 'lotto-reconciliation',
+          path: 'lotto-reconciliations',
+          payload: {
+            ...buildLottoReconciliationRequest(ids, lottoReconciliation),
+          },
+        },
+      ]);
       useManagerShiftStore.getState().reset();
     } catch (error_) {
       setError(

@@ -52,7 +52,7 @@ export interface LottoReconciliationFigures {
 }
 
 export interface LottoReconciliationRequest {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   bullock: number;
   bullPayouts: number;

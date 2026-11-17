@@ -83,7 +83,10 @@ export function useReviewShifts({
     setReviewStatus({ status: 'loading' });
     const load = async (): Promise<void> => {
       try {
-        const result = await fetchConsolidatedShifts(checkedIds.map(Number));
+        const shifts = today.status === 'ready' ? today.shifts : [];
+        const result = await fetchConsolidatedShifts(
+          shifts.filter((shift) => checkedIds.includes(shift.key)),
+        );
         setSelectedShiftIds(checkedIds);
         setConsolidated(result);
         setReviewStatus({ status: 'idle' });

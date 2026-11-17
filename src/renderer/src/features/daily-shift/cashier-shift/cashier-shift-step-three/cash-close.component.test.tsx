@@ -2,10 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
+import {
+  resetShiftStore,
+  seedOpenShift,
+  SHIFT_CLIENT_ID,
+} from '@/features/shift/test-utils';
 import { useShiftStore } from '@/features/shift/shift-store';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
+import { installFakeDevice, uninstallFakeDevice } from '@/test/fake-device';
+import type { FakeDevice } from '@/test/fake-device';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -45,51 +51,21 @@ async function fillRest(cashOnHand: string): Promise<void> {
   await page.getByLabelText('Cash on Hand').fill(cashOnHand);
 }
 
-function byPath(suffix: string): Record<string, unknown> | undefined {
-  return posted.find((p) => p.url.endsWith(suffix))?.body;
-}
-
-const posted: { url: string; body: Record<string, unknown> }[] = [];
-// Every request in order, so the close can be checked to come last.
-const calls: string[] = [];
-
-// `failPath` makes that endpoint answer with `failStatus`.
-function stubApi(failPath?: string, failStatus = 500): void {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((input: string, init?: RequestInit) => {
-      const url = String(input);
-      calls.push(url.split('/v1/')[1]);
-      if (failPath && url.endsWith(failPath)) {
-        return Promise.resolve(
-          Response.json({ message: 'Database down' }, { status: failStatus }),
-        );
-      }
-      if (url.endsWith('/close')) {
-        return Promise.resolve(Response.json({ data: {} }, { status: 200 }));
-      }
-      posted.push({ url, body: JSON.parse(String(init?.body)) });
-      return Promise.resolve(Response.json({ data: {} }, { status: 201 }));
-    }),
-  );
-}
+let device: FakeDevice;
 
 describe('Payouts and Cash on Hand window (real browser)', () => {
   beforeEach(() => {
-    posted.length = 0;
-    calls.length = 0;
-    stubApi();
+    device = installFakeDevice();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    uninstallFakeDevice();
     resetShiftStore();
     useAuthStore.getState().signOut();
     useCashierShiftStore.setState({
       creditTotals: null,
       dailySummary: null,
       cashClose: null,
-      savedTables: new Set(),
     });
     localStorage.clear();
   });
@@ -146,23 +122,28 @@ describe('Payouts and Cash on Hand window (real browser)', () => {
       dailySummary: null,
       cashClose: null,
     });
-    // The shift ends only after the three tables are saved.
-    expect(calls.at(-1)).toBe('shifts/9/close');
-    expect(calls).toHaveLength(4);
     expect(useShiftStore.getState().current).toEqual({ status: 'none' });
-    expect(byPath('/credit-totals')).toMatchObject({
-      shiftId: 9,
+    // The three tables are saved on the device together with the close.
+    expect(device.finished).toHaveLength(1);
+    expect(device.finished[0].clientId).toBe(SHIFT_CLIENT_ID);
+    expect(device.paths()).toEqual([
+      'credit-totals',
+      'daily-summary-reports',
+      'payouts',
+    ]);
+    expect(device.body('credit-totals')).toMatchObject({
+      shiftClientId: SHIFT_CLIENT_ID,
       userId: 4,
       creditTerminal: 10,
       creditTotal: 10,
     });
-    expect(byPath('/daily-summary-reports')).toMatchObject({
-      shiftId: 9,
+    expect(device.body('daily-summary-reports')).toMatchObject({
+      shiftClientId: SHIFT_CLIENT_ID,
       fuelSales: 60,
       totalSales: 100,
     });
-    expect(byPath('/payouts')).toMatchObject({
-      shiftId: 9,
+    expect(device.body('payouts')).toMatchObject({
+      shiftClientId: SHIFT_CLIENT_ID,
       totalPos: 10,
       vendorPayout: 7.25,
       lottoPayout: 0,
@@ -171,74 +152,29 @@ describe('Payouts and Cash on Hand window (real browser)', () => {
     });
   });
 
-  it('posts nothing until Save and Close is pressed', async () => {
+  it('saves nothing until Save and Close is pressed', async () => {
     await openStepThree();
-    expect(posted).toHaveLength(0);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(device.finished).toHaveLength(0);
+    expect(window.api.shifts.finish).not.toHaveBeenCalled();
   });
 
-  it('stays open on failure and retries only the table that failed', async () => {
+  it('stays open when saving on the device fails, and a retry saves everything once', async () => {
     let exited = false;
-    stubApi('/payouts');
     await openStepThree(() => {
       exited = true;
     });
+    device.failNextFinish('Disk full');
     await page.getByLabelText('Total POS (Card Sales)').fill('10');
     await fillRest('65');
     await page.getByRole('button', { name: 'Save and Close' }).click();
 
-    await expect.element(page.getByText('Database down')).toBeVisible();
-    expect(exited).toBe(false);
-    expect(posted.map((p) => p.url.split('/').pop()).sort()).toEqual([
-      'credit-totals',
-      'daily-summary-reports',
-    ]);
-
-    stubApi();
-    await page.getByRole('button', { name: 'Save and Close' }).click();
-    await vi.waitFor(() => expect(exited).toBe(true));
-    expect(posted.map((p) => p.url.split('/').pop()).sort()).toEqual([
-      'credit-totals',
-      'daily-summary-reports',
-      'payouts',
-    ]);
-  });
-
-  it('keeps the shift open when closing fails and the retry only closes', async () => {
-    let exited = false;
-    stubApi('/close');
-    await openStepThree(() => {
-      exited = true;
-    });
-    await page.getByLabelText('Total POS (Card Sales)').fill('10');
-    await fillRest('65');
-    await page.getByRole('button', { name: 'Save and Close' }).click();
-
-    await expect.element(page.getByText('Database down')).toBeVisible();
+    await expect.element(page.getByText('Disk full')).toBeVisible();
     expect(exited).toBe(false);
     expect(useShiftStore.getState().current.status).toBe('open');
-    expect(posted).toHaveLength(3);
+    expect(device.finished).toHaveLength(0);
 
-    calls.length = 0;
-    stubApi();
     await page.getByRole('button', { name: 'Save and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
-    // The three tables are not posted again.
-    expect(posted).toHaveLength(3);
-    expect(calls).toEqual(['shifts/9/close']);
-  });
-
-  it('counts a table the API already holds as saved and still closes', async () => {
-    let exited = false;
-    stubApi('/credit-totals', 409);
-    await openStepThree(() => {
-      exited = true;
-    });
-    await page.getByLabelText('Total POS (Card Sales)').fill('10');
-    await fillRest('65');
-    await page.getByRole('button', { name: 'Save and Close' }).click();
-
-    await vi.waitFor(() => expect(exited).toBe(true));
-    expect(calls.at(-1)).toBe('shifts/9/close');
+    expect(device.finished).toHaveLength(1);
   });
 });

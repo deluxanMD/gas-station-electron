@@ -21,7 +21,7 @@ export interface UseFuelDipsFormReturn {
 
 // Body of POST /fuel-dips. Volumes are litres, as the API stores.
 export interface FuelDipsRequest {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   dipAt: string;
   regularTcVolume: number;

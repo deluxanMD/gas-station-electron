@@ -1,4 +1,3 @@
-import { ApiError, apiRequest } from '@/lib/api';
 import type { FuelDipsData } from '@/features/daily-shift/supervisor-shift/types';
 import type { FuelDipsRequest } from './types';
 
@@ -9,7 +8,7 @@ const toInstant = (date: string, time: string): string =>
 const toLitres = (hundredths: number): number => hundredths / 100;
 
 export function buildFuelDipsRequest(
-  ids: { shiftId: number; userId: number },
+  ids: { shiftClientId: string; userId: number },
   dips: FuelDipsData,
 ): FuelDipsRequest {
   const request: FuelDipsRequest = {
@@ -28,19 +27,4 @@ export function buildFuelDipsRequest(
     request[`${key}Ullage90`] = toLitres(entry.ullage90CentiLitres);
   }
   return request;
-}
-
-// 409 means the API already holds the dips for this shift (an earlier try got
-// through but its answer was lost), so it counts as saved.
-export async function saveFuelDips(request: FuelDipsRequest): Promise<void> {
-  try {
-    await apiRequest(
-      'fuel-dips',
-      { method: 'POST', body: JSON.stringify(request) },
-      'Saving the fuel dips failed.',
-    );
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 409) return;
-    throw error;
-  }
 }

@@ -24,7 +24,7 @@ export type FuelRequestGrade =
 
 // Body of POST /fuel. Volumes are litres and totals dollars, as the API stores.
 export interface FuelRequest {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   biodieselVolume: number;
   biodieselTotal: number;

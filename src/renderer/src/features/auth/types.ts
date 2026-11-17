@@ -7,11 +7,13 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  data: { token: string; id: number };
+  data: { token: string; refreshToken: string; id: number };
 }
 
 export interface LoginResult {
   token: string;
+  // Lets the device send its queued writes after the access token expires.
+  refreshToken: string;
   // The API's numeric user id (the token only carries the login name).
   id: number;
 }
@@ -26,6 +28,8 @@ export interface AuthState {
   // The API's numeric user id, needed to start and look up shifts.
   dbUserId: number | null;
   signIn: (token: string, dbUserId?: number | null) => void;
+  // For an offline sign-in: the token may have expired, so the user is given rather than read from it.
+  signInAs: (token: string, user: AuthUser, dbUserId: number) => void;
   signOut: () => void;
 }
 

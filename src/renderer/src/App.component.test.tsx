@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import App from '@/App';
 import { AUTH_STORAGE_KEY, useAuthStore } from '@/features/auth/auth-store';
+import { installFakeDevice, uninstallFakeDevice } from '@/test/fake-device';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -12,7 +13,9 @@ function makeToken(role = 'MANAGER'): string {
   return `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role })}.signature`;
 }
 
+// The shift as this device holds it.
 const OPEN_SHIFT = {
+  clientId: '3f2b8c1e-6d4a-4b7e-9a10-5c2d8e7f1a90',
   id: 9,
   userId: 4,
   startTime: '2026-11-09T14:00:00.000Z',
@@ -20,14 +23,19 @@ const OPEN_SHIFT = {
 };
 
 // Answers login, the current-shift lookup and any other call by URL.
-function stubApi(currentShift: object | null = null, role = 'MANAGER'): void {
+function stubApi(
+  currentShift: typeof OPEN_SHIFT | null = null,
+  role = 'MANAGER',
+): void {
+  installFakeDevice(currentShift);
   vi.stubGlobal(
     'fetch',
     vi.fn((input: string) => {
       const url = String(input);
       let data: object | null = {};
-      if (url.includes('/auth/login')) data = { token: makeToken(role), id: 4 };
-      else if (url.includes('/shifts/current')) data = currentShift;
+      if (url.includes('/auth/login'))
+        data = { token: makeToken(role), refreshToken: 'r', id: 4 };
+      else if (url.includes('/shifts/current')) data = null;
       return Promise.resolve(Response.json({ data }));
     }),
   );
@@ -52,6 +60,7 @@ async function submitCredentials(): Promise<void> {
 describe('App navigation (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    uninstallFakeDevice();
     useAuthStore.getState().signOut();
     localStorage.clear();
     // Hash routing persists across tests in the same page.
@@ -67,6 +76,62 @@ describe('App navigation (real browser)', () => {
 
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect.element(page.getByLabelText('User ID')).toBeVisible();
+  });
+
+  it('signs in with no server when this device remembers the user', async () => {
+    installFakeDevice();
+    vi.mocked(window.api.credentials.loginOffline).mockResolvedValue({
+      status: 'ok',
+      dbUserId: 4,
+      role: 'CASHIER',
+      // Expired long ago: the sign-in must not depend on reading this token.
+      token: `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role: 'CASHIER', exp: 1 })}.sig`,
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('fetch failed'))),
+    );
+    await render(<App />);
+
+    await submitCredentials();
+
+    await expect.element(page.getByText('Welcome, station1')).toBeVisible();
+    expect(useAuthStore.getState().dbUserId).toBe(4);
+    expect(window.api.credentials.loginOffline).toHaveBeenCalledWith({
+      userId: 'station1',
+      password: 'password123',
+    });
+  });
+
+  it('says why when there is no server and the device does not know the user', async () => {
+    installFakeDevice();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('fetch failed'))),
+    );
+    await render(<App />);
+
+    await submitCredentials();
+
+    await expect
+      .element(page.getByText(/no recent sign-in for you/))
+      .toBeVisible();
+    expect(useAuthStore.getState().user).toBeNull();
+  });
+
+  it('remembers the password on this device after an online sign-in', async () => {
+    stubApi();
+    await render(<App />);
+
+    await submitCredentials();
+
+    await expect.element(page.getByText('Welcome, station1')).toBeVisible();
+    expect(window.api.credentials.remember).toHaveBeenCalledWith({
+      userId: 'station1',
+      dbUserId: 4,
+      role: 'MANAGER',
+      password: 'password123',
+    });
   });
 
   it('opens the home screen on load when a token is saved', async () => {

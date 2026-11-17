@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api';
+import { cachedRead } from '@/lib/cached-read';
 import type { LottoReportsData } from '@/features/daily-shift/manager-shift/types';
 import { LOTTO_SLIP_TYPE } from './constants';
 import type {
@@ -13,7 +14,7 @@ const orNull = (value: string): string | null => (value === '' ? null : value);
 // Four slips: the previous day's figures the Net was taken against, then the
 // three typed columns. Amounts are already whole cents.
 export function buildLottoReportRequest(
-  ids: { shiftId: number; userId: number },
+  ids: { shiftClientId: string; userId: number },
   data: LottoReportsData,
 ): LottoReportRequest {
   const typed = (
@@ -40,24 +41,14 @@ export function buildLottoReportRequest(
   };
 }
 
-// A 409 (already saved for this shift) is surfaced to the manager: a repeat of
-// identical values is skipped before reaching here.
-export async function saveLottoReport(
-  request: LottoReportRequest,
-): Promise<void> {
-  await apiRequest(
-    'lotto-reports',
-    { method: 'POST', body: JSON.stringify(request) },
-    'Saving the lotto reports failed.',
-  );
-}
-
 // The latest saved day-end slip: the next report's previous-day figures.
 export async function fetchLatestLottoDayEnd(): Promise<LottoDayEndSlip | null> {
-  const body = await apiRequest<LatestLottoDayEndResponse>(
-    'lotto-reports/latest',
-    undefined,
-    'Unable to load the previous day figures.',
-  );
-  return body.data;
+  return cachedRead('lotto-reports-latest', async () => {
+    const body = await apiRequest<LatestLottoDayEndResponse>(
+      'lotto-reports/latest',
+      undefined,
+      'Unable to load the previous day figures.',
+    );
+    return body.data;
+  });
 }

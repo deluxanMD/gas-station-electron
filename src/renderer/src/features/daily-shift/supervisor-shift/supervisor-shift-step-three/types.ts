@@ -24,7 +24,7 @@ export interface UseFuelDeliveryFormReturn {
 
 // Body of POST /fuel-deliveries. Volumes are litres, as the API stores.
 export interface FuelDeliveryRequest {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   deliveryDate: string;
   bolNumber: string;

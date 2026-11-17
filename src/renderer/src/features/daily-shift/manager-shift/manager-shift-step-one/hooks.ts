@@ -13,6 +13,7 @@ function isSameSelection(a: string[], b: string[]): boolean {
 
 export function useReviewCashierReports({
   onNext,
+  shifts,
 }: UseReviewCashierReportsOptions): UseReviewCashierReportsReturn {
   const reviewedIds = useManagerShiftStore((s) => s.selectedShiftIds);
   const stored = useManagerShiftStore((s) => s.consolidated);
@@ -41,7 +42,9 @@ export function useReviewCashierReports({
     setReviewStatus({ status: 'loading' });
     const load = async (): Promise<void> => {
       try {
-        const result = await fetchConsolidatedShifts(checkedIds.map(Number));
+        const result = await fetchConsolidatedShifts(
+          shifts.filter((shift) => checkedIds.includes(shift.key)),
+        );
         setSelectedShiftIds(checkedIds);
         setConsolidated(result);
         setReviewStatus({ status: 'idle' });

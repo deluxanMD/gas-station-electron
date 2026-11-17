@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { Outlet } from 'react-router';
+import { SyncStatus } from '@/components/sync-status';
 
 export function AppLayout(): JSX.Element {
   return (
@@ -8,6 +9,7 @@ export function AppLayout(): JSX.Element {
         <span className="text-lg font-semibold tracking-wide text-primary">
           Gas Station Portal
         </span>
+        <SyncStatus />
       </header>
       <main className="flex flex-1 flex-col">
         <Outlet />

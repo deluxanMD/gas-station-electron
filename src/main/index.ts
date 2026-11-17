@@ -1,7 +1,22 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, net } from 'electron';
 import { join } from 'node:path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
+import { openDatabase } from './db/database';
+import { Outbox } from './outbox/outbox';
+import { registerOutboxIpc } from './outbox/ipc';
+import { Credentials } from './auth/credentials';
+import { DeviceCache } from './cache/deviceCache';
+import { registerCacheIpc } from './cache/ipc';
+import { registerShiftsIpc } from './shifts/ipc';
+import { LocalShifts } from './shifts/localShifts';
+import { readSyncConfig } from './sync/config';
+import { PROBE_PATH } from './sync/constants';
+import { Connectivity } from './sync/connectivity';
+import { SyncEngine } from './sync/engine';
+import { keychainEncryptor, registerSyncIpc } from './sync/ipc';
+import { SessionStore } from './sync/session';
+import { ShiftMap } from './sync/shiftMap';
 
 function createWindow(): void {
   // Create the browser window.
@@ -50,6 +65,49 @@ app
     // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window);
+    });
+
+    // Writes made on this device wait here until the server confirms them.
+    const db = openDatabase(join(app.getPath('userData'), 'gas-station.db'));
+    const outbox = new Outbox(db);
+    registerOutboxIpc(outbox);
+    registerShiftsIpc(new LocalShifts(db, outbox));
+    registerCacheIpc(new DeviceCache(db));
+
+    // Sends the queued writes whenever the server can be reached, whichever screen is open.
+    const config = readSyncConfig({
+      buildTimeApiBaseUrl: import.meta.env.MAIN_VITE_API_BASE_URL,
+      isPackaged: app.isPackaged,
+      env: process.env,
+    });
+    const connectivity = new Connectivity({
+      probeUrl: `${config.apiBaseUrl}/${PROBE_PATH}`,
+      fetch: (input, init) => net.fetch(input, init),
+      onlineIntervalMs: config.probeOnlineIntervalMs,
+      offlineIntervalsMs: config.probeOfflineIntervalsMs,
+    });
+    const sessions = new SessionStore(db, keychainEncryptor);
+    const engine = new SyncEngine({
+      outbox,
+      sessions,
+      shiftMap: new ShiftMap(db),
+      connectivity,
+      fetch: (input, init) => net.fetch(input, init),
+      apiBaseUrl: config.apiBaseUrl,
+      tickMs: config.tickMs,
+    });
+    registerSyncIpc(
+      engine,
+      sessions,
+      outbox,
+      new Credentials(db, keychainEncryptor),
+    );
+    connectivity.start();
+    engine.start();
+    app.on('will-quit', () => {
+      engine.stop();
+      connectivity.stop();
+      db.close();
     });
 
     // IPC test

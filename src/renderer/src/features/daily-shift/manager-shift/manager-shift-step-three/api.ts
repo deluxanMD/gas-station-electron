@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api';
+import { cachedRead } from '@/lib/cached-read';
 import type { ScratchTicketsData } from '@/features/daily-shift/manager-shift/types';
 import type {
   LatestScratchTicketsResponse,
@@ -9,9 +10,12 @@ import type {
 export function buildScratchTicketsRequest(
   userId: number,
   data: ScratchTicketsData,
+  // The day the sheet belongs to, in the device's local time (the server would otherwise use the day it receives it).
+  businessDate: string,
 ): ScratchTicketsRequest {
   return {
     userId,
+    businessDate,
     shiftNumber: data.shiftNumber,
     lines: data.rows.map((row) => ({
       denomination: row.denomination,
@@ -22,24 +26,14 @@ export function buildScratchTicketsRequest(
   };
 }
 
-// A 409 (this shift sheet is already saved for the date) is surfaced to the
-// manager: a repeat of identical values is skipped before reaching here.
-export async function saveScratchTickets(
-  request: ScratchTicketsRequest,
-): Promise<void> {
-  await apiRequest(
-    'scratch-tickets',
-    { method: 'POST', body: JSON.stringify(request) },
-    'Saving the scratch tickets failed.',
-  );
-}
-
 // The latest saved report; its close counts are the next report's open counts.
 export async function fetchLatestScratchTickets(): Promise<ScratchTicketsReport | null> {
-  const body = await apiRequest<LatestScratchTicketsResponse>(
-    'scratch-tickets/latest',
-    undefined,
-    'Unable to load the previous scratch ticket counts.',
-  );
-  return body.data;
+  return cachedRead('scratch-tickets-latest', async () => {
+    const body = await apiRequest<LatestScratchTicketsResponse>(
+      'scratch-tickets/latest',
+      undefined,
+      'Unable to load the previous scratch ticket counts.',
+    );
+    return body.data;
+  });
 }

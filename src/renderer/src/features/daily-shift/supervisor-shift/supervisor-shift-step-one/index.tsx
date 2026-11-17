@@ -45,9 +45,9 @@ export function ReviewShifts({
         {today.status === 'ready'
           ? today.shifts.map((shift) => (
               <ShiftOption
-                key={shift.id}
+                key={shift.key}
                 shift={shift}
-                checked={checkedIds.includes(String(shift.id))}
+                checked={checkedIds.includes(shift.key)}
                 onToggle={toggleShift}
               />
             ))

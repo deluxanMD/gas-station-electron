@@ -2,11 +2,13 @@
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "include": [
     "electron.vite.config.*",
+    "build-tools/**/*",
     "vitest.config.*",
     "playwright.config.*",
     "e2e/**/*",
     "src/main/**/*",
-    "src/preload/**/*"
+    "src/preload/**/*",
+    "src/shared/**/*"
   ],
   "compilerOptions": {
     "composite": true,

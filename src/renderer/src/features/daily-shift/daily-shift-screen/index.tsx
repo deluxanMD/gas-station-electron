@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { StaleDataNotice } from '@/components/stale-data-notice';
 import { Button } from '@/components/ui/button';
 import { useShiftFlow } from './hooks';
 import type { DailyShiftScreenProps } from './types';
@@ -16,6 +17,7 @@ export function DailyShiftScreen({
           Back to home
         </Button>
       </section>
+      <StaleDataNotice />
       {shiftFlow ?? (
         <p className="text-muted-foreground">
           The daily shift is not available for your role yet.

@@ -4,6 +4,7 @@ import type {
   LoginResult,
 } from '@/features/auth/types';
 import type { LoginValues } from '@/features/auth/login/types';
+import { OfflineError } from '@/lib/api';
 
 const API_VERSION = 'v1';
 
@@ -19,7 +20,7 @@ export async function login(values: LoginValues): Promise<LoginResult> {
       },
     );
   } catch {
-    throw new Error('Unable to reach the server. Please try again.');
+    throw new OfflineError();
   }
 
   if (!response.ok) {
@@ -27,6 +28,7 @@ export async function login(values: LoginValues): Promise<LoginResult> {
     throw new Error(body.message ?? 'Sign in failed. Please try again.');
   }
 
-  const { token, id } = ((await response.json()) as LoginResponse).data;
-  return { token, id };
+  const { token, refreshToken, id } = ((await response.json()) as LoginResponse)
+    .data;
+  return { token, refreshToken, id };
 }

@@ -12,7 +12,7 @@ export function ShiftOption({
       <input
         type="checkbox"
         checked={checked}
-        onChange={() => onToggle(String(shift.id))}
+        onChange={() => onToggle(shift.key)}
       />
       <span>
         {shift.userName} · Started {formatDateTime(shift.startTime)} ·{' '}

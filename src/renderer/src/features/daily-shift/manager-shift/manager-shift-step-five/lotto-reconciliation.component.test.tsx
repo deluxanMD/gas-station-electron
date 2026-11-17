@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
+import {
+  resetShiftStore,
+  seedOpenShift,
+  SHIFT_CLIENT_ID,
+} from '@/features/shift/test-utils';
+import { installFakeDevice, uninstallFakeDevice } from '@/test/fake-device';
+import type { FakeDevice } from '@/test/fake-device';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
 import { useManagerShiftStore } from '@/features/daily-shift/manager-shift/manager-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
@@ -13,11 +19,14 @@ function encodePart(value: object): string {
 }
 
 // Walks steps 1-4: $5 tickets sold 12 ($60, $25 activated) and lotto slips.
+let device: FakeDevice;
+
 async function openReconciliationStep(
   onExit: () => void,
   stub: Parameters<typeof stubManagerShiftApi>[0] = {},
 ): Promise<void> {
   stubManagerShiftApi(stub);
+  device = installFakeDevice();
   const token = `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'u3', role: 'MANAGER' })}.sig`;
   useAuthStore.getState().signIn(token, 3);
   await render(<DailyShiftScreen onExit={onExit} />);
@@ -47,25 +56,10 @@ async function openReconciliationStep(
   await expect.element(page.getByText('Step 5 of 5')).toBeVisible();
 }
 
-const API_PREFIX = /^.*\/v1/;
+// The paths of the records saved with the shift, in order.
+const savedPaths = (): string[] => device.paths();
 
-// The paths the app POSTed to, in order.
-function postedPaths(): string[] {
-  return vi
-    .mocked(fetch)
-    .mock.calls.filter(([, init]) => init?.method === 'POST')
-    .map(([url]) => String(url).replace(API_PREFIX, ''));
-}
-
-function postedBody(path: string): unknown {
-  const call = vi
-    .mocked(fetch)
-    .mock.calls.find(
-      ([url, init]) =>
-        String(url).replace(API_PREFIX, '') === path && init?.method === 'POST',
-    );
-  return JSON.parse(call?.[1]?.body as string);
-}
+const savedBody = (path: string): unknown => device.body(path);
 
 async function fillBullFigures(): Promise<void> {
   await page.getByLabelText('Bullock').fill('0');
@@ -80,6 +74,7 @@ describe('Lotto Reconciliation window (real browser)', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    uninstallFakeDevice();
     resetShiftStore();
     useAuthStore.getState().signOut();
     useManagerShiftStore.getState().reset();
@@ -141,11 +136,8 @@ describe('Lotto Reconciliation window (real browser)', () => {
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
     // Managers work inside a tracked shift, so Post and Close ends it.
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/shifts\/9\/close$/),
-      expect.objectContaining({ method: 'POST' }),
-    );
-    expect(postedBody('/lotto-reconciliations')).toMatchObject({
+    expect(device.finished[0].clientId).toBe(SHIFT_CLIENT_ID);
+    expect(savedBody('lotto-reconciliations')).toMatchObject({
       bullock: 80_000,
       bullPayouts: 10_000,
       bullLottoWinner: 5000,
@@ -179,7 +171,7 @@ describe('Lotto Reconciliation window (real browser)', () => {
     expect(useManagerShiftStore.getState().lottoReconciliation).toBeNull();
   });
 
-  it('posts the scratch tickets, lotto reports and reconciliation in order, then closes', async () => {
+  it('saves the scratch tickets, lotto reports and reconciliation together with the close', async () => {
     let exited = false;
     await openReconciliationStep(() => {
       exited = true;
@@ -190,35 +182,37 @@ describe('Lotto Reconciliation window (real browser)', () => {
     await page.getByLabelText('Cash Net').fill('-230');
     await page.getByRole('combobox').selectOptions('previous-day');
 
-    // Nothing has been posted while walking the steps.
-    expect(postedPaths()).toEqual([]);
+    // Nothing has been saved while walking the steps.
+    expect(device.finished).toHaveLength(0);
 
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
 
-    expect(postedPaths()).toEqual([
-      '/scratch-tickets',
-      '/lotto-reports',
-      '/lotto-reconciliations',
-      '/shifts/9/close',
+    expect(savedPaths()).toEqual([
+      'scratch-tickets',
+      'lotto-reports',
+      'lotto-reconciliations',
     ]);
-    const scratch = postedBody('/scratch-tickets') as {
+    const scratch = savedBody('scratch-tickets') as {
       userId: number;
+      businessDate: string;
       shiftNumber: number;
       lines: { denomination: number; openCount: number }[];
     };
     expect(scratch).toMatchObject({ userId: 3, shiftNumber: 9 });
+    // The day is the device's, so a sheet sent later still belongs to the day it was made.
+    expect(scratch.businessDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(scratch.lines.find((line) => line.denomination === 5)).toEqual({
       denomination: 5,
       openCount: 10,
       closeCount: 3,
       activationsCount: 5,
     });
-    const lotto = postedBody('/lotto-reports') as {
-      shiftId: number;
+    const lotto = savedBody('lotto-reports') as {
+      shiftClientId: string;
       slips: { slipType: string; amounts: Record<string, number> }[];
     };
-    expect(lotto.shiftId).toBe(9);
+    expect(lotto.shiftClientId).toBe(SHIFT_CLIENT_ID);
     expect(lotto.slips.map((slip) => slip.slipType)).toEqual([
       'PREVIOUS_DAY',
       'YESTERDAY',
@@ -226,8 +220,8 @@ describe('Lotto Reconciliation window (real browser)', () => {
       'DAY_END',
     ]);
     expect(lotto.slips[3].amounts.onlineNetSales).toBe(100_000);
-    expect(postedBody('/lotto-reconciliations')).toEqual({
-      shiftId: 9,
+    expect(savedBody('lotto-reconciliations')).toEqual({
+      shiftClientId: SHIFT_CLIENT_ID,
       userId: 3,
       bullock: 80_000,
       bullPayouts: 10_000,
@@ -253,57 +247,25 @@ describe('Lotto Reconciliation window (real browser)', () => {
     await vi.waitFor(() => expect(exited).toBe(true));
 
     expect(
-      (postedBody('/lotto-reconciliations') as { attribution: null })
-        .attribution,
+      (savedBody('lotto-reconciliations') as { attribution: null }).attribution,
     ).toBeNull();
   });
 
-  it('stops at the failed report, shows the error and does not close the shift', async () => {
+  it('stays open when saving on the device fails and saves everything once on retry', async () => {
     let exited = false;
-    await openReconciliationStep(
-      () => {
-        exited = true;
-      },
-      {
-        lottoSave: Response.json(
-          { message: 'Already saved for this shift' },
-          { status: 409 },
-        ),
-      },
-    );
+    await openReconciliationStep(() => {
+      exited = true;
+    });
+    device.failNextFinish('Disk full');
     await fillBullFigures();
     await page.getByRole('button', { name: 'Post and Close' }).click();
 
-    await expect
-      .element(page.getByText('Already saved for this shift'))
-      .toBeVisible();
+    await expect.element(page.getByText('Disk full')).toBeVisible();
     expect(exited).toBe(false);
-    expect(postedPaths()).toEqual(['/scratch-tickets', '/lotto-reports']);
-  });
+    expect(device.finished).toHaveLength(0);
 
-  it('retries without posting a saved report twice', async () => {
-    let exited = false;
-    await openReconciliationStep(
-      () => {
-        exited = true;
-      },
-      {
-        lottoSave: Response.json({ message: 'Database down' }, { status: 500 }),
-      },
-    );
-    await fillBullFigures();
-    await page.getByRole('button', { name: 'Post and Close' }).click();
-    await expect.element(page.getByText('Database down')).toBeVisible();
-
-    // The API recovers; only what is still unsaved is posted.
-    stubManagerShiftApi();
     await page.getByRole('button', { name: 'Post and Close' }).click();
     await vi.waitFor(() => expect(exited).toBe(true));
-
-    expect(postedPaths()).toEqual([
-      '/lotto-reports',
-      '/lotto-reconciliations',
-      '/shifts/9/close',
-    ]);
+    expect(device.finished).toHaveLength(1);
   });
 });

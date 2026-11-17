@@ -1,7 +1,7 @@
-import type { ShiftWithUser } from '@/features/shift/types';
+import type { ReviewShift } from '@/features/shift/types';
 
 export interface ShiftOptionProps {
-  shift: ShiftWithUser;
+  shift: ReviewShift;
   checked: boolean;
   onToggle: (id: string) => void;
 }

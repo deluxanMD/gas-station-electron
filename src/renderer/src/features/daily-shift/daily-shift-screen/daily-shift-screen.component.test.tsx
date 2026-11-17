@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
+import {
+  resetShiftStore,
+  seedOpenShift,
+  SHIFT_CLIENT_ID,
+} from '@/features/shift/test-utils';
 import { useCashierShiftStore } from '@/features/daily-shift/cashier-shift/cashier-shift-store';
 import { SCRATCH_DENOMINATIONS } from '@/features/daily-shift/manager-shift/manager-shift-step-three/constants';
 import { stubManagerShiftApi } from '@/features/daily-shift/manager-shift/test-utils';
@@ -12,6 +16,7 @@ import { FUEL_GRADES } from '@/features/daily-shift/supervisor-shift/supervisor-
 import { stubShiftApi } from '@/features/daily-shift/supervisor-shift/supervisor-shift-step-one/test-utils';
 import { useSupervisorShiftStore } from '@/features/daily-shift/supervisor-shift/supervisor-shift-store';
 import { DailyShiftScreen } from '@/features/daily-shift/daily-shift-screen';
+import { installFakeDevice, uninstallFakeDevice } from '@/test/fake-device';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -26,6 +31,7 @@ function signInAs(role: string): void {
 describe('DailyShiftScreen (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    uninstallFakeDevice();
     resetShiftStore();
     useManagerShiftStore.getState().reset();
     useSupervisorShiftStore.setState({
@@ -74,7 +80,8 @@ describe('DailyShiftScreen (real browser)', () => {
   });
 
   it('walks a supervisor through the five Close Day steps', async () => {
-    const fetchMock = stubShiftApi();
+    stubShiftApi();
+    const device = installFakeDevice();
     signInAs('SUPERVISOR');
     const onExit = vi.fn();
     await render(<DailyShiftScreen onExit={onExit} />);
@@ -108,25 +115,20 @@ describe('DailyShiftScreen (real browser)', () => {
       }
       if (step < 5) await page.getByRole('button', { name: 'Next' }).click();
     }
-    const posted = (suffix: string): boolean =>
-      fetchMock.mock.calls.some(([url]) => String(url).endsWith(suffix));
     // Next only navigates; nothing is saved before the last step.
-    expect(posted('/fuel')).toBe(false);
-    expect(posted('/fuel-deliveries')).toBe(false);
-    expect(posted('/fuel-dips')).toBe(false);
+    expect(device.finished).toHaveLength(0);
 
     await page.getByRole('button', { name: 'Finish' }).click();
     await vi.waitFor(() => expect(onExit).toHaveBeenCalled());
-    expect(posted('/fuel')).toBe(true);
-    expect(posted('/fuel-deliveries')).toBe(true);
-    expect(posted('/fuel-dips')).toBe(true);
-    expect(posted('/shifts/9/close')).toBe(true);
+    // Saved together on the device: the records, then the close the sync engine sends last.
+    expect(device.finished).toHaveLength(1);
+    expect(device.paths()).toEqual(['fuel', 'fuel-deliveries', 'fuel-dips']);
+    expect(device.finished[0].clientId).toBe(SHIFT_CLIENT_ID);
   });
 
   it('keeps the shift open when saving on Finish fails', async () => {
-    stubShiftApi({
-      fuel: Response.json({ message: 'Server down' }, { status: 500 }),
-    });
+    stubShiftApi();
+    installFakeDevice().failNextFinish('Server down');
     signInAs('SUPERVISOR');
     useSupervisorShiftStore.setState({
       fuel: {

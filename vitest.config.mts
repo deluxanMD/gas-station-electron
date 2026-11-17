@@ -17,8 +17,17 @@ export default defineConfig({
           name: 'unit',
           environment: 'jsdom',
           include: ['src/**/*.test.{ts,tsx}'],
-          exclude: ['src/**/*.component.test.{ts,tsx}'],
+          exclude: ['src/**/*.component.test.{ts,tsx}', 'src/main/**'],
           setupFiles: ['src/renderer/src/test/setup.unit.ts'],
+        },
+      },
+      {
+        // Main-process code (SQLite, IPC handlers) runs on plain Node, not in a browser-like environment.
+        extends: true,
+        test: {
+          name: 'main',
+          environment: 'node',
+          include: ['src/main/**/*.test.ts', 'build-tools/**/*.test.ts'],
         },
       },
       {
