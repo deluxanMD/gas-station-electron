@@ -29,6 +29,7 @@ export interface ScratchTicketsRequestLine {
 
 export interface ScratchTicketsRequest {
   userId: number;
+  businessDate: string; // YYYY-MM-DD
   shiftNumber: number;
   lines: ScratchTicketsRequestLine[];
 }
@@ -55,4 +56,6 @@ export interface UseScratchTicketsFormReturn {
   handleSubmit: ReturnType<UseFormReturn<ScratchTicketsValues>['handleSubmit']>;
   calculations: ScratchTicketCalculation[];
   totalAmountCents: number;
+  // True when the shift number comes from the shift itself and cannot be changed.
+  shiftNumberLocked: boolean;
 }

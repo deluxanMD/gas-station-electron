@@ -87,20 +87,9 @@ export interface LottoReconciliationData {
   totalCents: number;
 }
 
-export interface ManagerSavedReports {
-  scratchTickets: ScratchTicketsData | null;
-  lottoReports: LottoReportsData | null;
-  lottoReconciliation: LottoReconciliationData | null;
-}
-
 export interface ManagerShiftState {
-  saved: ManagerSavedReports;
   // Clears everything once a shift is posted, so the next one starts fresh.
   reset: () => void;
-  markSaved: <K extends keyof ManagerSavedReports>(
-    report: K,
-    data: NonNullable<ManagerSavedReports[K]>,
-  ) => void;
   selectedShiftIds: string[];
   setSelectedShiftIds: (ids: string[]) => void;
   consolidated: ConsolidatedShifts | null;

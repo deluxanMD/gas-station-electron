@@ -5,7 +5,7 @@ import { FUEL_GRADES } from './constants';
 describe('buildFuelRequest', () => {
   it('converts hundredths to litres and dollars, one pair per grade', () => {
     const request = buildFuelRequest(
-      { shiftId: 3, userId: 8 },
+      { shiftClientId: 'c3', userId: 8 },
       {
         grades: FUEL_GRADES.map((grade, index) => ({
           grade,
@@ -17,7 +17,7 @@ describe('buildFuelRequest', () => {
     );
 
     expect(request).toEqual({
-      shiftId: 3,
+      shiftClientId: 'c3',
       userId: 8,
       biodieselVolume: 100.5,
       biodieselTotal: 25.75,

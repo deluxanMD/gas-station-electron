@@ -40,6 +40,9 @@ export function useScratchTicketsForm({
   const openShift = useOpenShift();
   const setScratchTickets = useManagerShiftStore((s) => s.setScratchTickets);
 
+  // The server's id for the shift, once known; a shift started offline has none yet, so the manager enters it.
+  const prefill = (openShift?.id ?? null) === null ? '' : String(openShift?.id);
+
   const defaultValues: ScratchTicketsValues = saved
     ? {
         shiftNumber: String(saved.shiftNumber),
@@ -52,7 +55,7 @@ export function useScratchTicketsForm({
     : {
         ...EMPTY_SCRATCH_TICKETS,
         // The sheet is for the shift in progress; still editable.
-        shiftNumber: openShift ? String(openShift.id) : '',
+        shiftNumber: prefill,
       };
 
   const form = useForm<ScratchTicketsValues>({
@@ -119,5 +122,11 @@ export function useScratchTicketsForm({
     onNext();
   });
 
-  return { form, handleSubmit, calculations, totalAmountCents };
+  return {
+    form,
+    handleSubmit,
+    calculations,
+    totalAmountCents,
+    shiftNumberLocked: prefill !== '',
+  };
 }

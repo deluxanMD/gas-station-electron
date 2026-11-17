@@ -107,9 +107,10 @@ export class SyncEngine extends EventEmitter {
   private readonly onOutboxChanged = (): void => {
     this.emitState();
   };
-  // A new write goes out at once instead of waiting for the next tick.
+  // A new write goes out at once instead of waiting for the next tick. Deferred so a transaction that is still
+  // queuing the shift's other writes commits first: nothing is sent that could still be rolled back.
   private readonly onEnqueued = (): void => {
-    void this.syncNow();
+    setImmediate(() => void this.syncNow());
   };
   private readonly onSessionChanged = (): void => {
     this.emitState();

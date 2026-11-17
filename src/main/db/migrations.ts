@@ -36,4 +36,18 @@ export const MIGRATIONS: readonly string[] = [
     server_id INTEGER NOT NULL
   ) STRICT;
   `,
+  `
+  -- A shift as this device knows it. The server id lives in shift_map once the start has been confirmed.
+  CREATE TABLE local_shift (
+    client_id  TEXT    PRIMARY KEY,
+    user_id    INTEGER NOT NULL,
+    start_time TEXT    NOT NULL,
+    end_time   TEXT,
+    created_at TEXT    NOT NULL
+  ) STRICT;
+
+  CREATE INDEX local_shift_user ON local_shift (user_id, start_time);
+  -- One open shift per user on this device.
+  CREATE UNIQUE INDEX local_shift_one_open ON local_shift (user_id) WHERE end_time IS NULL;
+  `,
 ];

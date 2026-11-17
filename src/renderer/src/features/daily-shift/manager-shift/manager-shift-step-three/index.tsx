@@ -20,8 +20,13 @@ export function InstantScratchTickets({
   formId,
   onNext,
 }: InstantScratchTicketsProps): JSX.Element {
-  const { form, handleSubmit, calculations, totalAmountCents } =
-    useScratchTicketsForm({ onNext });
+  const {
+    form,
+    handleSubmit,
+    calculations,
+    totalAmountCents,
+    shiftNumberLocked,
+  } = useScratchTicketsForm({ onNext });
 
   return (
     <Form {...form}>
@@ -35,7 +40,7 @@ export function InstantScratchTickets({
           <RowField<ScratchTicketsValues>
             name="shiftNumber"
             label="Shift #"
-            disabled
+            disabled={shiftNumberLocked}
             inputMode="numeric"
             autoComplete="off"
             className="border-0 shadow-none"

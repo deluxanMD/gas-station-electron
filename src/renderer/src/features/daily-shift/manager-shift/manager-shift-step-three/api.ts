@@ -9,9 +9,12 @@ import type {
 export function buildScratchTicketsRequest(
   userId: number,
   data: ScratchTicketsData,
+  // The day the sheet belongs to, in the device's local time (the server would otherwise use the day it receives it).
+  businessDate: string,
 ): ScratchTicketsRequest {
   return {
     userId,
+    businessDate,
     shiftNumber: data.shiftNumber,
     lines: data.rows.map((row) => ({
       denomination: row.denomination,
@@ -20,18 +23,6 @@ export function buildScratchTicketsRequest(
       activationsCount: row.activationsCount,
     })),
   };
-}
-
-// A 409 (this shift sheet is already saved for the date) is surfaced to the
-// manager: a repeat of identical values is skipped before reaching here.
-export async function saveScratchTickets(
-  request: ScratchTicketsRequest,
-): Promise<void> {
-  await apiRequest(
-    'scratch-tickets',
-    { method: 'POST', body: JSON.stringify(request) },
-    'Saving the scratch tickets failed.',
-  );
 }
 
 // The latest saved report; its close counts are the next report's open counts.

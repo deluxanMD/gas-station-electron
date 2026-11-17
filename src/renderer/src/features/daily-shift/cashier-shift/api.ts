@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from '@/lib/api';
+import type { ShiftWriteInput } from '@/lib/ipc';
 import type {
   CashierShiftSubmission,
   CashCloseData,
@@ -6,12 +6,6 @@ import type {
   DailySummaryData,
   PayoutType,
 } from './types';
-
-const ENDPOINTS = {
-  creditTotals: 'credit-totals',
-  dailySummary: 'daily-summary-reports',
-  payouts: 'payouts',
-} as const;
 
 const toDollars = (cents: number): number => cents / 100;
 
@@ -31,7 +25,7 @@ function toEndDate(date: string, time: string): string {
 }
 
 export function buildSubmission(
-  ids: { shiftId: number; userId: number },
+  ids: { shiftClientId: string; userId: number },
   data: {
     creditTotals: CreditTotalsCents;
     dailySummary: DailySummaryData;
@@ -85,66 +79,21 @@ export function buildSubmission(
   };
 }
 
-type Table = keyof CashierShiftSubmission;
-
-// Carries the tables that did save, so the caller can retry only the rest.
-export class SaveShiftError extends Error {
-  constructor(
-    message: string,
-    readonly saved: ReadonlySet<Table>,
-  ) {
-    super(message);
-  }
-}
-
-const TABLE_ENDPOINT: Record<Table, string> = {
-  creditTotals: ENDPOINTS.creditTotals,
-  dailySummary: ENDPOINTS.dailySummary,
-  payouts: ENDPOINTS.payouts,
-};
-
-// 409 means the API already holds this table for the shift (an earlier try got
-// through but its answer was lost), so it counts as saved.
-async function post(table: Table, body: unknown): Promise<void> {
-  try {
-    await apiRequest(
-      TABLE_ENDPOINT[table],
-      { method: 'POST', body: JSON.stringify(body) },
-      'Saving the shift failed.',
-    );
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 409) return;
-    throw error;
-  }
-}
-
-// Posts the three tables in parallel (the caller then closes the shift). `alreadySaved` lets a retry skip the
-// tables that went through the first time, so nothing is inserted twice.
-// Resolves with every table now saved; throws if any is still missing.
-export async function saveCashierShift(
+// The three tables written when the shift is saved, as records for the sync engine to send.
+export function buildWrites(
   submission: CashierShiftSubmission,
-  alreadySaved: ReadonlySet<Table> = new Set(),
-): Promise<Set<Table>> {
-  const saved = new Set(alreadySaved);
-  const pending = (Object.keys(TABLE_ENDPOINT) as Table[]).filter(
-    (table) => !saved.has(table),
-  );
-
-  const results = await Promise.allSettled(
-    pending.map((table) => post(table, submission[table])),
-  );
-
-  let failure: unknown = null;
-  for (const [i, result] of results.entries()) {
-    if (result.status === 'fulfilled') saved.add(pending[i]);
-    else failure ??= result.reason;
-  }
-
-  if (failure) {
-    throw new SaveShiftError(
-      failure instanceof Error ? failure.message : 'Saving the shift failed.',
-      saved,
-    );
-  }
-  return saved;
+): ShiftWriteInput[] {
+  return [
+    {
+      entity: 'credit-totals',
+      path: 'credit-totals',
+      payload: { ...submission.creditTotals },
+    },
+    {
+      entity: 'daily-summary',
+      path: 'daily-summary-reports',
+      payload: { ...submission.dailySummary },
+    },
+    { entity: 'payouts', path: 'payouts', payload: { ...submission.payouts } },
+  ];
 }

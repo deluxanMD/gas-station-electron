@@ -41,7 +41,10 @@ export function createDailySummarySchema(
   defaultShiftNumber: string,
 ): typeof dailySummaryShape {
   return dailySummaryShape.superRefine((values, ctx) => {
-    const shiftChanged = values.shiftNumber.trim() !== defaultShiftNumber;
+    // With no default (shift not yet known to the server) typing the number is not a change.
+    const shiftChanged =
+      defaultShiftNumber !== '' &&
+      values.shiftNumber.trim() !== defaultShiftNumber;
     if (
       shiftChanged &&
       /^[1-9]\d*$/.test(values.shiftNumber) &&

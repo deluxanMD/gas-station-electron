@@ -8,22 +8,10 @@ const INITIAL_STATE = {
   scratchTickets: null,
   lottoReports: null,
   lottoReconciliation: null,
-  saved: {
-    scratchTickets: null,
-    lottoReports: null,
-    lottoReconciliation: null,
-  },
 };
 
 export const useManagerShiftStore = create<ManagerShiftState>()((set) => ({
   reset: () => set(INITIAL_STATE),
-  saved: {
-    scratchTickets: null,
-    lottoReports: null,
-    lottoReconciliation: null,
-  },
-  markSaved: (report, data) =>
-    set((state) => ({ saved: { ...state.saved, [report]: data } })),
   selectedShiftIds: [],
   setSelectedShiftIds: (selectedShiftIds) => set({ selectedShiftIds }),
   consolidated: null,

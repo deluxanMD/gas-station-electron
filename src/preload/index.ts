@@ -1,7 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
 import { IpcChannel } from '../shared/ipc';
-import type { OutboxApi, SessionApi, SyncApi, SyncState } from '../shared/ipc';
+import type {
+  OutboxApi,
+  SessionApi,
+  ShiftsApi,
+  SyncApi,
+  SyncState,
+} from '../shared/ipc';
 
 // Custom APIs for renderer
 const outbox: OutboxApi = {
@@ -30,7 +36,14 @@ const sync: SyncApi = {
   },
 };
 
-const api = { outbox, session, sync };
+const shifts: ShiftsApi = {
+  current: (userId) => ipcRenderer.invoke(IpcChannel.ShiftsCurrent, userId),
+  start: (userId) => ipcRenderer.invoke(IpcChannel.ShiftsStart, userId),
+  adopt: (input) => ipcRenderer.invoke(IpcChannel.ShiftsAdopt, input),
+  finish: (input) => ipcRenderer.invoke(IpcChannel.ShiftsFinish, input),
+};
+
+const api = { outbox, session, sync, shifts };
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

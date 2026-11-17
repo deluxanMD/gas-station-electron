@@ -1,12 +1,20 @@
-export interface Shift {
+import type { LocalShift } from '@/lib/ipc';
+
+// A shift as this device knows it; `id` is null until the server has confirmed the start.
+export type Shift = LocalShift;
+
+// A shift as the server reports it (lists, and the open shift of a user).
+export interface ServerShift {
   id: number;
+  // Null for a shift started before devices made their own ids.
+  clientId: string | null;
   // The API's numeric id of the user who owns the shift.
   userId: number;
   startTime: string;
   endTime: string | null;
 }
 
-export interface ShiftWithUser extends Shift {
+export interface ShiftWithUser extends ServerShift {
   userName: string;
 }
 

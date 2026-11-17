@@ -78,12 +78,9 @@ export interface CashierShiftState {
   setDailySummary: (summary: DailySummaryData) => void;
   cashClose: CashCloseData | null;
   setCashClose: (cashClose: CashCloseData) => void;
-  // True while the three requests are in flight; blocks a second click.
+  // True while the shift is being saved; blocks a second click.
   saving: boolean;
   setSaving: (saving: boolean) => void;
-  // Tables already written by a partly failed save; a retry skips them.
-  savedTables: ReadonlySet<keyof CashierShiftSubmission>;
-  setSavedTables: (tables: ReadonlySet<keyof CashierShiftSubmission>) => void;
   // Clears all three steps once the shift is saved.
   resetShift: () => void;
 }
@@ -91,7 +88,7 @@ export interface CashierShiftState {
 // Request bodies for the three tables written when the shift is saved.
 // Amounts are in dollars, the unit the API stores.
 export interface CreditTotalsPayload {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   creditTerminal: number;
   creditTotal: number;
@@ -101,7 +98,7 @@ export interface CreditTotalsPayload {
 }
 
 export interface DailySummaryPayload {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   endDate: string; // ISO 8601 with offset
   fuelSales: number;
@@ -113,7 +110,7 @@ export interface DailySummaryPayload {
 }
 
 export interface PayoutsPayload {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   totalPos: number;
   lottoPayout: number;

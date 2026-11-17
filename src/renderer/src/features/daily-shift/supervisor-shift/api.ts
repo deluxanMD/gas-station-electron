@@ -1,26 +1,36 @@
-import { buildFuelRequest, saveFuel } from './supervisor-shift-step-two/api';
-import {
-  buildFuelDeliveryRequest,
-  saveFuelDelivery,
-} from './supervisor-shift-step-three/api';
-import {
-  buildFuelDipsRequest,
-  saveFuelDips,
-} from './supervisor-shift-step-four/api';
+import type { ShiftWriteInput } from '@/lib/ipc';
+import { buildFuelRequest } from './supervisor-shift-step-two/api';
+import { buildFuelDeliveryRequest } from './supervisor-shift-step-three/api';
+import { buildFuelDipsRequest } from './supervisor-shift-step-four/api';
 import type { FuelData, FuelDeliveryEntry, FuelDipsData } from './types';
 
-// Saves what the steps collected: fuel, the delivery if one was entered, dips.
-export async function saveSupervisorShift(
-  ids: { shiftId: number; userId: number },
+// What the steps collected, as records for the sync engine to send: fuel, the delivery if one was entered, dips.
+export function buildSupervisorWrites(
+  ids: { shiftClientId: string; userId: number },
   data: {
     fuel: FuelData;
     fuelDelivery: FuelDeliveryEntry | null;
     fuelDips: FuelDipsData;
   },
-): Promise<void> {
-  await saveFuel(buildFuelRequest(ids, data.fuel));
+): ShiftWriteInput[] {
+  const writes: ShiftWriteInput[] = [
+    {
+      entity: 'fuel',
+      path: 'fuel',
+      payload: { ...buildFuelRequest(ids, data.fuel) },
+    },
+  ];
   if (data.fuelDelivery) {
-    await saveFuelDelivery(buildFuelDeliveryRequest(ids, data.fuelDelivery));
+    writes.push({
+      entity: 'fuel-delivery',
+      path: 'fuel-deliveries',
+      payload: { ...buildFuelDeliveryRequest(ids, data.fuelDelivery) },
+    });
   }
-  await saveFuelDips(buildFuelDipsRequest(ids, data.fuelDips));
+  writes.push({
+    entity: 'fuel-dip',
+    path: 'fuel-dips',
+    payload: { ...buildFuelDipsRequest(ids, data.fuelDips) },
+  });
+  return writes;
 }

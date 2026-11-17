@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import App from '@/App';
 import { AUTH_STORAGE_KEY, useAuthStore } from '@/features/auth/auth-store';
+import { installFakeDevice, uninstallFakeDevice } from '@/test/fake-device';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -12,7 +13,9 @@ function makeToken(role = 'MANAGER'): string {
   return `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role })}.signature`;
 }
 
+// The shift as this device holds it.
 const OPEN_SHIFT = {
+  clientId: '3f2b8c1e-6d4a-4b7e-9a10-5c2d8e7f1a90',
   id: 9,
   userId: 4,
   startTime: '2026-11-09T14:00:00.000Z',
@@ -20,14 +23,19 @@ const OPEN_SHIFT = {
 };
 
 // Answers login, the current-shift lookup and any other call by URL.
-function stubApi(currentShift: object | null = null, role = 'MANAGER'): void {
+function stubApi(
+  currentShift: typeof OPEN_SHIFT | null = null,
+  role = 'MANAGER',
+): void {
+  installFakeDevice(currentShift);
   vi.stubGlobal(
     'fetch',
     vi.fn((input: string) => {
       const url = String(input);
       let data: object | null = {};
-      if (url.includes('/auth/login')) data = { token: makeToken(role), id: 4 };
-      else if (url.includes('/shifts/current')) data = currentShift;
+      if (url.includes('/auth/login'))
+        data = { token: makeToken(role), refreshToken: 'r', id: 4 };
+      else if (url.includes('/shifts/current')) data = null;
       return Promise.resolve(Response.json({ data }));
     }),
   );
@@ -52,6 +60,7 @@ async function submitCredentials(): Promise<void> {
 describe('App navigation (real browser)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    uninstallFakeDevice();
     useAuthStore.getState().signOut();
     localStorage.clear();
     // Hash routing persists across tests in the same page.

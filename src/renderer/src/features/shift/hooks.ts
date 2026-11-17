@@ -1,36 +1,68 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/features/auth/auth-store';
 import { useCan } from '@/features/auth/hooks';
-import { closeShift, fetchCurrentShift, startShift } from './api';
+import { ApiError } from '@/lib/api';
+import { fetchCurrentShift } from './api';
+import {
+  adoptServerShift,
+  currentLocalShift,
+  finishShift,
+  startLocalShift,
+} from './local';
 import { useShiftStore } from './shift-store';
-import type { Shift, UseFinishShift, UseStartShift } from './types';
+import type {
+  ServerShift,
+  Shift,
+  UseFinishShift,
+  UseStartShift,
+} from './types';
 
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-// Reads the open shift from the API into the store; also the retry action.
+// Reads the user's open shift into the store; also the retry action. The shift on this device comes first. Only when
+// there is none is the server asked (a shift started on another device); if it cannot be reached the user can still
+// start one here.
 export async function loadCurrentShift(dbUserId: number): Promise<void> {
   const { setCurrent } = useShiftStore.getState();
+  const isStale = (): boolean => useAuthStore.getState().dbUserId !== dbUserId;
   setCurrent({ status: 'loading' });
   try {
-    const shift = await fetchCurrentShift(dbUserId);
-    // Ignore the answer if the user signed out or changed meanwhile.
-    if (useAuthStore.getState().dbUserId !== dbUserId) return;
-    setCurrent(shift ? { status: 'open', shift } : { status: 'none' });
+    const local = await currentLocalShift(dbUserId);
+    if (isStale()) return;
+    if (local) {
+      setCurrent({ status: 'open', shift: local });
+      return;
+    }
+
+    let server: ServerShift | null = null;
+    try {
+      server = await fetchCurrentShift(dbUserId);
+    } catch (error) {
+      // The server answered with an error: that is a real problem. No answer just means offline.
+      if (error instanceof ApiError) throw error;
+    }
+    if (isStale()) return;
+    if (!server) {
+      setCurrent({ status: 'none' });
+      return;
+    }
+    const adopted = await adoptServerShift({
+      userId: dbUserId,
+      id: server.id,
+      clientId: server.clientId,
+      startTime: server.startTime,
+    });
+    if (isStale()) return;
+    setCurrent({ status: 'open', shift: adopted });
   } catch (error) {
-    if (useAuthStore.getState().dbUserId !== dbUserId) return;
+    if (isStale()) return;
     setCurrent({
       status: 'error',
       message: messageOf(error, 'Unable to check your shift.'),
     });
   }
-}
-
-// Ends the shift on the API, then marks it closed locally.
-export async function endShift(shiftId: number): Promise<void> {
-  await closeShift(shiftId);
-  useShiftStore.getState().setCurrent({ status: 'none' });
 }
 
 // Mount once for the signed-in area; clears the shift when the user leaves it.
@@ -60,7 +92,7 @@ export function useStartShift(): UseStartShift {
     setStarting(true);
     setError(null);
     try {
-      const shift = await startShift(dbUserId);
+      const shift = await startLocalShift(dbUserId);
       useShiftStore.getState().setCurrent({ status: 'open', shift });
     } catch (error_) {
       setError(messageOf(error_, 'Unable to start the shift.'));
@@ -72,8 +104,8 @@ export function useStartShift(): UseStartShift {
   return { start: () => void start(), starting, error };
 }
 
-// For roles whose last step saves nothing to the API yet: closes the shift,
-// then leaves the flow. The cashier closes inside its own save instead.
+// For roles whose last step saves nothing yet: closes the shift, then leaves the
+// flow. The other roles close inside their own save instead.
 export function useFinishShift(onExit: () => void): UseFinishShift {
   const shift = useOpenShift();
   const tracksShift = useCan('daily-shift', 'trackShift');
@@ -94,7 +126,7 @@ export function useFinishShift(onExit: () => void): UseFinishShift {
     setClosing(true);
     setError(null);
     try {
-      await endShift(shift.id);
+      await finishShift(shift, []);
     } catch (error_) {
       setError(messageOf(error_, 'Unable to close the shift.'));
       setClosing(false);

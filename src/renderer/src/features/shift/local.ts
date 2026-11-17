@@ -1,0 +1,32 @@
+import type { Shift } from './types';
+import { useShiftStore } from './shift-store';
+import type { ShiftsApi, ShiftWriteInput } from '@/lib/ipc';
+
+// Shifts live on this device; the preload API exists only inside the desktop app.
+function shiftsApi(): ShiftsApi {
+  const api = window.api?.shifts;
+  if (!api)
+    throw new Error('Saving on this device is not available in this window.');
+  return api;
+}
+
+export const currentLocalShift = (userId: number): Promise<Shift | null> =>
+  shiftsApi().current(userId);
+
+export const startLocalShift = (userId: number): Promise<Shift> =>
+  shiftsApi().start(userId);
+
+export const adoptServerShift: ShiftsApi['adopt'] = (input) =>
+  shiftsApi().adopt(input);
+
+/**
+ * Saves the shift's records and ends it, all together, on this device: nothing here waits for the server, which
+ * receives it all when it can be reached. The shift counts as closed from this moment.
+ */
+export async function finishShift(
+  shift: Shift,
+  writes: ShiftWriteInput[],
+): Promise<void> {
+  await shiftsApi().finish({ clientId: shift.clientId, writes });
+  useShiftStore.getState().setCurrent({ status: 'none' });
+}

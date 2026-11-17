@@ -50,7 +50,7 @@ export interface LottoSlipRequest {
 }
 
 export interface LottoReportRequest {
-  shiftId: number;
+  shiftClientId: string;
   userId: number;
   slips: LottoSlipRequest[];
 }

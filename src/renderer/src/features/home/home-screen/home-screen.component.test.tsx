@@ -6,6 +6,7 @@ import { useAuthStore } from '@/features/auth/auth-store';
 import { useShiftStore } from '@/features/shift/shift-store';
 import { resetShiftStore, seedOpenShift } from '@/features/shift/test-utils';
 import { HomeScreen } from '@/features/home/home-screen';
+import { installFakeDevice, uninstallFakeDevice } from '@/test/fake-device';
 
 function encodePart(value: object): string {
   return btoa(JSON.stringify(value));
@@ -63,7 +64,7 @@ describe('HomeScreen modules by role (real browser)', () => {
 
 describe('HomeScreen shift (real browser)', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    uninstallFakeDevice();
     resetShiftStore();
     useAuthStore.getState().signOut();
     localStorage.clear();
@@ -72,21 +73,7 @@ describe('HomeScreen shift (real browser)', () => {
   it('starts a shift from the welcome header', async () => {
     signInAs('CASHIER');
     useShiftStore.setState({ current: { status: 'none' } });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        Promise.resolve(
-          Response.json({
-            data: {
-              id: 9,
-              userId: 4,
-              startTime: '2026-11-09T14:00:00.000Z',
-              endTime: null,
-            },
-          }),
-        ),
-      ),
-    );
+    installFakeDevice();
     await renderHome();
 
     await page.getByRole('button', { name: 'Start shift' }).click();
@@ -95,26 +82,14 @@ describe('HomeScreen shift (real browser)', () => {
     await expect
       .element(page.getByRole('button', { name: 'Start shift' }))
       .not.toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/shifts$/),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ userId: 4 }),
-      }),
-    );
+    // The shift starts on this device; the server is told later.
+    expect(window.api.shifts.start).toHaveBeenCalledWith(4);
   });
 
   it('shows why a shift could not be started and keeps the button', async () => {
     signInAs('CASHIER');
     useShiftStore.setState({ current: { status: 'none' } });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        Promise.resolve(
-          Response.json({ message: 'Database down' }, { status: 500 }),
-        ),
-      ),
-    );
+    installFakeDevice().failNextStart('Database down');
     await renderHome();
 
     await page.getByRole('button', { name: 'Start shift' }).click();

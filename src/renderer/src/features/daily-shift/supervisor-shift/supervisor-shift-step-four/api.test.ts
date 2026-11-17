@@ -6,7 +6,7 @@ describe('buildFuelDipsRequest', () => {
   it('converts hundredths to litres, one pair per product', () => {
     expect(
       buildFuelDipsRequest(
-        { shiftId: 3, userId: 8 },
+        { shiftClientId: 'c3', userId: 8 },
         {
           date: '2026-11-09',
           time: '22:15',
@@ -18,7 +18,7 @@ describe('buildFuelDipsRequest', () => {
         },
       ),
     ).toEqual({
-      shiftId: 3,
+      shiftClientId: 'c3',
       userId: 8,
       dipAt: new Date('2026-11-09T22:15').toISOString(),
       regularTcVolume: 10_000.5,

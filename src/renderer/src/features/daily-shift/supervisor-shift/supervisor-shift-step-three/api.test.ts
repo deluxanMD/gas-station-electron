@@ -5,7 +5,7 @@ describe('buildFuelDeliveryRequest', () => {
   it('converts hundredths to litres', () => {
     expect(
       buildFuelDeliveryRequest(
-        { shiftId: 3, userId: 8 },
+        { shiftClientId: 'c3', userId: 8 },
         {
           date: '2026-11-08',
           bolNumber: 'BOL-1',
@@ -16,7 +16,7 @@ describe('buildFuelDeliveryRequest', () => {
         },
       ),
     ).toEqual({
-      shiftId: 3,
+      shiftClientId: 'c3',
       userId: 8,
       deliveryDate: '2026-11-08',
       bolNumber: 'BOL-1',

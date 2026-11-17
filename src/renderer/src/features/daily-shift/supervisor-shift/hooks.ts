@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useCan } from '@/features/auth/hooks';
-import { endShift, useOpenShift } from '@/features/shift/hooks';
+import { useOpenShift } from '@/features/shift/hooks';
+import { finishShift } from '@/features/shift/local';
 import { useSupervisorShiftStore } from './supervisor-shift-store';
-import { saveSupervisorShift } from './api';
+import { buildSupervisorWrites } from './api';
 import type { UseFinishSupervisorShift, UseStepper } from './types';
 
 export function useStepper(stepCount: number): UseStepper {
@@ -17,9 +18,8 @@ export function useStepper(stepCount: number): UseStepper {
   };
 }
 
-// The last step: saves what the steps collected, then closes the shift.
-// Every save treats "already saved" as success, so a retry after a failure
-// never duplicates rows.
+// The last step: saves what the steps collected and closes the shift, on this
+// device; the sync engine sends it to the server when it can be reached.
 export function useFinishSupervisorShift(
   onExit: () => void,
 ): UseFinishSupervisorShift {
@@ -46,11 +46,13 @@ export function useFinishSupervisorShift(
     setClosing(true);
     setError(null);
     try {
-      await saveSupervisorShift(
-        { shiftId: shift.id, userId: shift.userId },
-        { fuel, fuelDelivery, fuelDips },
+      await finishShift(
+        shift,
+        buildSupervisorWrites(
+          { shiftClientId: shift.clientId, userId: shift.userId },
+          { fuel, fuelDelivery, fuelDips },
+        ),
       );
-      await endShift(shift.id);
     } catch (error_) {
       setError(
         error_ instanceof Error ? error_.message : 'Unable to save the shift.',

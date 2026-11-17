@@ -5,6 +5,8 @@ import icon from '../../resources/icon.png?asset';
 import { openDatabase } from './db/database';
 import { Outbox } from './outbox/outbox';
 import { registerOutboxIpc } from './outbox/ipc';
+import { registerShiftsIpc } from './shifts/ipc';
+import { LocalShifts } from './shifts/localShifts';
 import { readSyncConfig } from './sync/config';
 import { PROBE_PATH } from './sync/constants';
 import { Connectivity } from './sync/connectivity';
@@ -66,6 +68,7 @@ app
     const db = openDatabase(join(app.getPath('userData'), 'gas-station.db'));
     const outbox = new Outbox(db);
     registerOutboxIpc(outbox);
+    registerShiftsIpc(new LocalShifts(db, outbox));
 
     // Sends the queued writes whenever the server can be reached, whichever screen is open.
     const config = readSyncConfig({

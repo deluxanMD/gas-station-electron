@@ -1,12 +1,11 @@
 import type { FuelData } from '@/features/daily-shift/supervisor-shift/types';
-import { ApiError, apiRequest } from '@/lib/api';
 import { FUEL_REQUEST_KEYS } from './constants';
 import type { FuelRequest } from './types';
 
 const toUnits = (hundredths: number): number => hundredths / 100;
 
 export function buildFuelRequest(
-  ids: { shiftId: number; userId: number },
+  ids: { shiftClientId: string; userId: number },
   fuel: FuelData,
 ): FuelRequest {
   const request: FuelRequest = {
@@ -29,19 +28,4 @@ export function buildFuelRequest(
     request[`${key}Total`] = toUnits(entry.totalCents);
   }
   return request;
-}
-
-// 409 means the API already holds fuel for this shift (an earlier try got
-// through but its answer was lost, or the user came back to this step).
-export async function saveFuel(request: FuelRequest): Promise<void> {
-  try {
-    await apiRequest(
-      'fuel',
-      { method: 'POST', body: JSON.stringify(request) },
-      'Saving the fuel entries failed.',
-    );
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 409) return;
-    throw error;
-  }
 }

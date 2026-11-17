@@ -19,7 +19,9 @@ export function useDailySummaryForm({
   onNext,
 }: UseDailySummaryFormOptions): UseDailySummaryFormReturn {
   const shift = useOpenShift();
-  const defaultShiftNumber = shift === null ? '' : String(shift.id);
+  // The server's id, once known; a shift started offline has none yet, so the cashier enters it.
+  const defaultShiftNumber =
+    (shift?.id ?? null) === null ? '' : String(shift?.id);
   const saved = useCashierShiftStore((s) => s.dailySummary);
   const setDailySummary = useCashierShiftStore((s) => s.setDailySummary);
 
@@ -44,7 +46,8 @@ export function useDailySummaryForm({
   });
 
   const shiftNumber = useWatch({ control: form.control, name: 'shiftNumber' });
-  const needsChangeReason = shiftNumber.trim() !== defaultShiftNumber;
+  const needsChangeReason =
+    defaultShiftNumber !== '' && shiftNumber.trim() !== defaultShiftNumber;
 
   const handleSubmit = form.handleSubmit((values) => {
     const shiftNumber = Number(values.shiftNumber);

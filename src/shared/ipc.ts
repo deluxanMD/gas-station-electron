@@ -9,6 +9,10 @@ export const IpcChannel = {
   SyncNow: 'sync:now',
   // Sent from main to every window whenever the sync state changes.
   SyncState: 'sync:state',
+  ShiftsCurrent: 'shifts:current',
+  ShiftsStart: 'shifts:start',
+  ShiftsAdopt: 'shifts:adopt',
+  ShiftsFinish: 'shifts:finish',
 } as const;
 
 export type OutboxStatus =
@@ -82,4 +86,47 @@ export interface SyncApi {
   syncNow: () => Promise<void>;
   // Returns the function that stops listening.
   onState: (listener: (state: SyncState) => void) => () => void;
+}
+
+// A shift as this device knows it: it exists here the moment it is started, with or without the server.
+export interface LocalShift {
+  // Made on this device; what every write about the shift refers to.
+  clientId: string;
+  // Known once the server has confirmed the start (or the shift began there).
+  id: number | null;
+  // `users.id` of the shift's owner.
+  userId: number;
+  startTime: string;
+  endTime: string | null;
+}
+
+// An open shift the server already has, e.g. one started on another device.
+export interface AdoptShiftInput {
+  userId: number;
+  id: number;
+  clientId: string | null;
+  startTime: string;
+}
+
+// One record to send when the shift ends, as the API takes it. The shift's client id, the owner and the time the
+// shift ended are added by the main process.
+export interface ShiftWriteInput {
+  entity: string;
+  path: string;
+  payload: Record<string, unknown>;
+}
+
+export interface FinishShiftInput {
+  clientId: string;
+  writes: ShiftWriteInput[];
+}
+
+export interface ShiftsApi {
+  // The user's open shift on this device, or null.
+  current: (userId: number) => Promise<LocalShift | null>;
+  // Starts a shift now, or returns the one already open. Works offline.
+  start: (userId: number) => Promise<LocalShift>;
+  adopt: (input: AdoptShiftInput) => Promise<LocalShift>;
+  // Saves the shift's records and ends it, all together or not at all. Works offline.
+  finish: (input: FinishShiftInput) => Promise<LocalShift>;
 }
