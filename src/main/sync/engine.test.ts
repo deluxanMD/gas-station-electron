@@ -419,6 +419,40 @@ describe('SyncEngine sessions', () => {
   });
 });
 
+describe('SyncEngine renewAccessToken', () => {
+  it('returns a new access token and keeps the new pair', async () => {
+    fetchFn.mockResolvedValueOnce(
+      ok({ token: 'access-2', refreshToken: 'refresh-2', id: 7 }),
+    );
+
+    await expect(engine.renewAccessToken(7)).resolves.toBe('access-2');
+    expect(sessions.get(7)).toEqual({
+      accessToken: 'access-2',
+      refreshToken: 'refresh-2',
+    });
+  });
+
+  it('returns null and asks for a sign-in when the refresh token is refused', async () => {
+    fetchFn.mockResolvedValueOnce(
+      fail(401, 'Invalid or expired refresh token'),
+    );
+
+    await expect(engine.renewAccessToken(7)).resolves.toBeNull();
+    expect(sessions.unavailable(7)).toBe(true);
+  });
+
+  it('returns null, without asking for a sign-in, when the server cannot be reached', async () => {
+    fetchFn.mockRejectedValueOnce(new TypeError('fetch failed'));
+
+    await expect(engine.renewAccessToken(7)).resolves.toBeNull();
+    expect(sessions.unavailable(7)).toBe(false);
+  });
+
+  it('returns null for a user with no session', async () => {
+    await expect(engine.renewAccessToken(99)).resolves.toBeNull();
+  });
+});
+
 describe('SyncEngine state', () => {
   it('reports counts and connectivity and announces changes', async () => {
     const states: SyncState[] = [];

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/features/auth/auth-store';
+import {
+  activateDrafts,
+  deactivateDrafts,
+} from '@/features/daily-shift/drafts';
 import { useCan } from '@/features/auth/hooks';
 import { ApiError } from '@/lib/api';
 import { fetchCurrentShift } from './api';
@@ -32,6 +36,8 @@ export async function loadCurrentShift(dbUserId: number): Promise<void> {
     const local = await currentLocalShift(dbUserId);
     if (isStale()) return;
     if (local) {
+      await activateDrafts(dbUserId, local.clientId);
+      if (isStale()) return;
       setCurrent({ status: 'open', shift: local });
       return;
     }
@@ -45,6 +51,7 @@ export async function loadCurrentShift(dbUserId: number): Promise<void> {
     }
     if (isStale()) return;
     if (!server) {
+      deactivateDrafts();
       setCurrent({ status: 'none' });
       return;
     }
@@ -54,6 +61,8 @@ export async function loadCurrentShift(dbUserId: number): Promise<void> {
       clientId: server.clientId,
       startTime: server.startTime,
     });
+    if (isStale()) return;
+    await activateDrafts(dbUserId, adopted.clientId);
     if (isStale()) return;
     setCurrent({ status: 'open', shift: adopted });
   } catch (error) {
@@ -93,6 +102,7 @@ export function useStartShift(): UseStartShift {
     setError(null);
     try {
       const shift = await startLocalShift(dbUserId);
+      await activateDrafts(dbUserId, shift.clientId);
       useShiftStore.getState().setCurrent({ status: 'open', shift });
     } catch (error_) {
       setError(messageOf(error_, 'Unable to start the shift.'));

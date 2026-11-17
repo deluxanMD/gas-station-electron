@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
 import { IpcChannel } from '../shared/ipc';
 import type {
+  CacheApi,
+  CredentialsApi,
   OutboxApi,
   SessionApi,
   ShiftsApi,
@@ -19,6 +21,14 @@ const outbox: OutboxApi = {
 const session: SessionApi = {
   set: (input) => ipcRenderer.invoke(IpcChannel.SessionSet, input),
   release: (userId) => ipcRenderer.invoke(IpcChannel.SessionRelease, userId),
+  renew: (userId) => ipcRenderer.invoke(IpcChannel.SessionRenew, userId),
+};
+
+const credentials: CredentialsApi = {
+  remember: (input) =>
+    ipcRenderer.invoke(IpcChannel.CredentialsRemember, input),
+  loginOffline: (input) =>
+    ipcRenderer.invoke(IpcChannel.CredentialsLoginOffline, input),
 };
 
 const sync: SyncApi = {
@@ -43,7 +53,12 @@ const shifts: ShiftsApi = {
   finish: (input) => ipcRenderer.invoke(IpcChannel.ShiftsFinish, input),
 };
 
-const api = { outbox, session, sync, shifts };
+const cache: CacheApi = {
+  get: (key) => ipcRenderer.invoke(IpcChannel.CacheGet, key),
+  put: (key, value) => ipcRenderer.invoke(IpcChannel.CachePut, key, value),
+};
+
+const api = { outbox, session, sync, shifts, credentials, cache };
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

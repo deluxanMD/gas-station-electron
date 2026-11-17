@@ -19,6 +19,7 @@ export const useAuthStore = create<AuthState>()(
             : { token: null, user: null, dbUserId: null },
         );
       },
+      signInAs: (token, user, dbUserId) => set({ token, user, dbUserId }),
       signOut: () => set({ token: null, user: null, dbUserId: null }),
     }),
     {

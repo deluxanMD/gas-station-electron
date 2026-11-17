@@ -13,6 +13,11 @@ export const IpcChannel = {
   ShiftsStart: 'shifts:start',
   ShiftsAdopt: 'shifts:adopt',
   ShiftsFinish: 'shifts:finish',
+  CredentialsRemember: 'credentials:remember',
+  CredentialsLoginOffline: 'credentials:login-offline',
+  SessionRenew: 'session:renew',
+  CacheGet: 'cache:get',
+  CachePut: 'cache:put',
 } as const;
 
 export type OutboxStatus =
@@ -68,6 +73,8 @@ export interface SessionApi {
   set: (input: SessionInput) => Promise<void>;
   // On sign-out: the tokens are dropped unless the user still has writes waiting to sync.
   release: (userId: number) => Promise<void>;
+  // A new access token for the user, or null when the server refuses (they must sign in again) or cannot be reached.
+  renew: (userId: number) => Promise<string | null>;
 }
 
 export type ConnectivityState = 'online' | 'offline';
@@ -129,4 +136,48 @@ export interface ShiftsApi {
   adopt: (input: AdoptShiftInput) => Promise<LocalShift>;
   // Saves the shift's records and ends it, all together or not at all. Works offline.
   finish: (input: FinishShiftInput) => Promise<LocalShift>;
+}
+
+// Remembered after a successful online sign-in so the same person can sign in again without a server.
+export interface RememberCredentialsInput {
+  // The login name.
+  userId: string;
+  dbUserId: number;
+  role: string | null;
+  password: string;
+}
+
+export interface OfflineLoginInput {
+  userId: string;
+  password: string;
+}
+
+export type OfflineLoginResult =
+  | {
+      status: 'ok';
+      dbUserId: number;
+      role: string | null;
+      // The device's last access token for the user; it may have expired.
+      token: string;
+    }
+  // Wrong password or unknown user (not told apart).
+  | { status: 'invalid' }
+  // Never signed in on this device, signed in too long ago, or the keychain is unavailable.
+  | { status: 'unavailable' }
+  | { status: 'locked'; until: string };
+
+export interface CredentialsApi {
+  remember: (input: RememberCredentialsInput) => Promise<void>;
+  loginOffline: (input: OfflineLoginInput) => Promise<OfflineLoginResult>;
+}
+
+export interface CachedValue {
+  value: unknown;
+  // When the server gave this answer.
+  fetchedAt: string;
+}
+
+export interface CacheApi {
+  get: (key: string) => Promise<CachedValue | null>;
+  put: (key: string, value: unknown) => Promise<void>;
 }

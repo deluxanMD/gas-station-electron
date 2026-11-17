@@ -1,3 +1,4 @@
+import { discardDrafts } from '@/features/daily-shift/drafts';
 import type { Shift } from './types';
 import { useShiftStore } from './shift-store';
 import type { ShiftsApi, ShiftWriteInput } from '@/lib/ipc';
@@ -28,5 +29,7 @@ export async function finishShift(
   writes: ShiftWriteInput[],
 ): Promise<void> {
   await shiftsApi().finish({ clientId: shift.clientId, writes });
+  // Saved: the half-entered figures are no longer wanted. This also keeps the flow's own reset from rewriting them.
+  discardDrafts();
   useShiftStore.getState().setCurrent({ status: 'none' });
 }

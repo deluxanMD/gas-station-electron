@@ -5,6 +5,9 @@ import icon from '../../resources/icon.png?asset';
 import { openDatabase } from './db/database';
 import { Outbox } from './outbox/outbox';
 import { registerOutboxIpc } from './outbox/ipc';
+import { Credentials } from './auth/credentials';
+import { DeviceCache } from './cache/deviceCache';
+import { registerCacheIpc } from './cache/ipc';
 import { registerShiftsIpc } from './shifts/ipc';
 import { LocalShifts } from './shifts/localShifts';
 import { readSyncConfig } from './sync/config';
@@ -69,6 +72,7 @@ app
     const outbox = new Outbox(db);
     registerOutboxIpc(outbox);
     registerShiftsIpc(new LocalShifts(db, outbox));
+    registerCacheIpc(new DeviceCache(db));
 
     // Sends the queued writes whenever the server can be reached, whichever screen is open.
     const config = readSyncConfig({
@@ -92,7 +96,12 @@ app
       apiBaseUrl: config.apiBaseUrl,
       tickMs: config.tickMs,
     });
-    registerSyncIpc(engine, sessions, outbox);
+    registerSyncIpc(
+      engine,
+      sessions,
+      outbox,
+      new Credentials(db, keychainEncryptor),
+    );
     connectivity.start();
     engine.start();
     app.on('will-quit', () => {

@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api';
+import { cachedRead } from '@/lib/cached-read';
 import type { LottoReportsData } from '@/features/daily-shift/manager-shift/types';
 import { LOTTO_SLIP_TYPE } from './constants';
 import type {
@@ -42,10 +43,12 @@ export function buildLottoReportRequest(
 
 // The latest saved day-end slip: the next report's previous-day figures.
 export async function fetchLatestLottoDayEnd(): Promise<LottoDayEndSlip | null> {
-  const body = await apiRequest<LatestLottoDayEndResponse>(
-    'lotto-reports/latest',
-    undefined,
-    'Unable to load the previous day figures.',
-  );
-  return body.data;
+  return cachedRead('lotto-reports-latest', async () => {
+    const body = await apiRequest<LatestLottoDayEndResponse>(
+      'lotto-reports/latest',
+      undefined,
+      'Unable to load the previous day figures.',
+    );
+    return body.data;
+  });
 }

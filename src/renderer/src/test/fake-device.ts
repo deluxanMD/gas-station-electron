@@ -32,9 +32,18 @@ export function installFakeDevice(
   let startFailure: string | null = null;
 
   window.api = {
+    cache: {
+      get: vi.fn(() => Promise.resolve(null)),
+      put: vi.fn(() => Promise.resolve()),
+    },
+    credentials: {
+      remember: vi.fn(() => Promise.resolve()),
+      loginOffline: vi.fn(() => Promise.resolve({ status: 'unavailable' })),
+    },
     session: {
       set: vi.fn(() => Promise.resolve()),
       release: vi.fn(() => Promise.resolve()),
+      renew: vi.fn(() => Promise.resolve(null)),
     },
     shifts: {
       current: vi.fn(() => Promise.resolve(openShift)),

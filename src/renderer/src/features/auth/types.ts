@@ -28,6 +28,8 @@ export interface AuthState {
   // The API's numeric user id, needed to start and look up shifts.
   dbUserId: number | null;
   signIn: (token: string, dbUserId?: number | null) => void;
+  // For an offline sign-in: the token may have expired, so the user is given rather than read from it.
+  signInAs: (token: string, user: AuthUser, dbUserId: number) => void;
   signOut: () => void;
 }
 

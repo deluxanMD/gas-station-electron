@@ -256,6 +256,22 @@ export class SyncEngine extends EventEmitter {
     };
   }
 
+  /**
+   * A new access token for the user, for the renderer's own requests. Null when the refresh token is refused (the user
+   * must sign in again) or the server cannot be reached.
+   */
+  async renewAccessToken(userId: number): Promise<string | null> {
+    try {
+      if (!(await this.refresh(userId))) {
+        this.deps.sessions.markExpired(userId);
+        return null;
+      }
+    } catch {
+      return null;
+    }
+    return this.deps.sessions.get(userId)?.accessToken ?? null;
+  }
+
   /** Trades the refresh token for new tokens. False when the server refuses it (the user must sign in again). */
   private async refresh(userId: number): Promise<boolean> {
     const session = this.deps.sessions.get(userId);

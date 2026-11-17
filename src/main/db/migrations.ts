@@ -50,4 +50,25 @@ export const MIGRATIONS: readonly string[] = [
   -- One open shift per user on this device.
   CREATE UNIQUE INDEX local_shift_one_open ON local_shift (user_id) WHERE end_time IS NULL;
   `,
+  `
+  -- What lets a user who signed in here before sign in again with no server. Only a salted scrypt hash of the
+  -- password is kept, sealed with the OS keychain; the password itself is never stored.
+  CREATE TABLE credential (
+    user_id         TEXT    PRIMARY KEY,
+    db_user_id      INTEGER NOT NULL UNIQUE,
+    role            TEXT,
+    verifier        BLOB    NOT NULL,
+    last_online_at  TEXT    NOT NULL,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until    TEXT
+  ) STRICT;
+  `,
+  `
+  -- The last answer the server gave for a read, so the screen can show it when the server cannot be reached.
+  CREATE TABLE cache (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    fetched_at TEXT NOT NULL
+  ) STRICT;
+  `,
 ];

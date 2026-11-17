@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api';
+import { cachedRead } from '@/lib/cached-read';
 import type { ScratchTicketsData } from '@/features/daily-shift/manager-shift/types';
 import type {
   LatestScratchTicketsResponse,
@@ -27,10 +28,12 @@ export function buildScratchTicketsRequest(
 
 // The latest saved report; its close counts are the next report's open counts.
 export async function fetchLatestScratchTickets(): Promise<ScratchTicketsReport | null> {
-  const body = await apiRequest<LatestScratchTicketsResponse>(
-    'scratch-tickets/latest',
-    undefined,
-    'Unable to load the previous scratch ticket counts.',
-  );
-  return body.data;
+  return cachedRead('scratch-tickets-latest', async () => {
+    const body = await apiRequest<LatestScratchTicketsResponse>(
+      'scratch-tickets/latest',
+      undefined,
+      'Unable to load the previous scratch ticket counts.',
+    );
+    return body.data;
+  });
 }

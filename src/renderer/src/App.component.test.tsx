@@ -78,6 +78,62 @@ describe('App navigation (real browser)', () => {
     await expect.element(page.getByLabelText('User ID')).toBeVisible();
   });
 
+  it('signs in with no server when this device remembers the user', async () => {
+    installFakeDevice();
+    vi.mocked(window.api.credentials.loginOffline).mockResolvedValue({
+      status: 'ok',
+      dbUserId: 4,
+      role: 'CASHIER',
+      // Expired long ago: the sign-in must not depend on reading this token.
+      token: `${encodePart({ alg: 'HS256' })}.${encodePart({ sub: 'station1', role: 'CASHIER', exp: 1 })}.sig`,
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('fetch failed'))),
+    );
+    await render(<App />);
+
+    await submitCredentials();
+
+    await expect.element(page.getByText('Welcome, station1')).toBeVisible();
+    expect(useAuthStore.getState().dbUserId).toBe(4);
+    expect(window.api.credentials.loginOffline).toHaveBeenCalledWith({
+      userId: 'station1',
+      password: 'password123',
+    });
+  });
+
+  it('says why when there is no server and the device does not know the user', async () => {
+    installFakeDevice();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('fetch failed'))),
+    );
+    await render(<App />);
+
+    await submitCredentials();
+
+    await expect
+      .element(page.getByText(/no recent sign-in for you/))
+      .toBeVisible();
+    expect(useAuthStore.getState().user).toBeNull();
+  });
+
+  it('remembers the password on this device after an online sign-in', async () => {
+    stubApi();
+    await render(<App />);
+
+    await submitCredentials();
+
+    await expect.element(page.getByText('Welcome, station1')).toBeVisible();
+    expect(window.api.credentials.remember).toHaveBeenCalledWith({
+      userId: 'station1',
+      dbUserId: 4,
+      role: 'MANAGER',
+      password: 'password123',
+    });
+  });
+
   it('opens the home screen on load when a token is saved', async () => {
     stubApi();
     saveSession();
