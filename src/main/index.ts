@@ -1,10 +1,17 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, net } from 'electron';
 import { join } from 'node:path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import { openDatabase } from './db/database';
 import { Outbox } from './outbox/outbox';
 import { registerOutboxIpc } from './outbox/ipc';
+import { readSyncConfig } from './sync/config';
+import { PROBE_PATH } from './sync/constants';
+import { Connectivity } from './sync/connectivity';
+import { SyncEngine } from './sync/engine';
+import { keychainEncryptor, registerSyncIpc } from './sync/ipc';
+import { SessionStore } from './sync/session';
+import { ShiftMap } from './sync/shiftMap';
 
 function createWindow(): void {
   // Create the browser window.
@@ -57,8 +64,39 @@ app
 
     // Writes made on this device wait here until the server confirms them.
     const db = openDatabase(join(app.getPath('userData'), 'gas-station.db'));
-    registerOutboxIpc(new Outbox(db));
-    app.on('will-quit', () => db.close());
+    const outbox = new Outbox(db);
+    registerOutboxIpc(outbox);
+
+    // Sends the queued writes whenever the server can be reached, whichever screen is open.
+    const config = readSyncConfig({
+      buildTimeApiBaseUrl: import.meta.env.MAIN_VITE_API_BASE_URL,
+      isPackaged: app.isPackaged,
+      env: process.env,
+    });
+    const connectivity = new Connectivity({
+      probeUrl: `${config.apiBaseUrl}/${PROBE_PATH}`,
+      fetch: (input, init) => net.fetch(input, init),
+      onlineIntervalMs: config.probeOnlineIntervalMs,
+      offlineIntervalsMs: config.probeOfflineIntervalsMs,
+    });
+    const sessions = new SessionStore(db, keychainEncryptor);
+    const engine = new SyncEngine({
+      outbox,
+      sessions,
+      shiftMap: new ShiftMap(db),
+      connectivity,
+      fetch: (input, init) => net.fetch(input, init),
+      apiBaseUrl: config.apiBaseUrl,
+      tickMs: config.tickMs,
+    });
+    registerSyncIpc(engine, sessions, outbox);
+    connectivity.start();
+    engine.start();
+    app.on('will-quit', () => {
+      engine.stop();
+      connectivity.stop();
+      db.close();
+    });
 
     // IPC test
     // eslint-disable-next-line no-console

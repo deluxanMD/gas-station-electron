@@ -21,4 +21,19 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX outbox_due ON outbox (status, next_attempt_at);
   CREATE INDEX outbox_shift ON outbox (shift_client_id, created_at);
   `,
+  `
+  -- Encrypted with the OS keychain (safeStorage) before it is written.
+  CREATE TABLE session (
+    user_id       INTEGER PRIMARY KEY,
+    access_token  BLOB    NOT NULL,
+    refresh_token BLOB    NOT NULL,
+    updated_at    TEXT    NOT NULL
+  ) STRICT;
+
+  -- The server id a shift got once its start was synced, for writes that address the shift by id.
+  CREATE TABLE shift_map (
+    client_id TEXT    PRIMARY KEY,
+    server_id INTEGER NOT NULL
+  ) STRICT;
+  `,
 ];

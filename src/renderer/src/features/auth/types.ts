@@ -7,11 +7,13 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  data: { token: string; id: number };
+  data: { token: string; refreshToken: string; id: number };
 }
 
 export interface LoginResult {
   token: string;
+  // Lets the device send its queued writes after the access token expires.
+  refreshToken: string;
   // The API's numeric user id (the token only carries the login name).
   id: number;
 }

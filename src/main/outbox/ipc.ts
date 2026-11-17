@@ -12,7 +12,7 @@ const enqueueSchema = z.object({
   // Only API paths: a queued write must never be aimed at another host.
   path: z
     .string()
-    .regex(/^[a-z0-9\-/]+$/i, 'Invalid path')
+    .regex(/^[a-z0-9\-/{}]+$/i, 'Invalid path')
     .max(200),
   payload: z.json(),
 });
