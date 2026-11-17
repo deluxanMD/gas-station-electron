@@ -213,3 +213,110 @@ describe('LocalShifts.adopt', () => {
     expect(shift.clientId).toBe(ID_1);
   });
 });
+
+describe('LocalShifts.today', () => {
+  const day = {
+    from: '2026-01-01T00:00:00.000Z',
+    to: '2026-01-02T00:00:00.000Z',
+  };
+
+  it('lists the shifts that started in the range, with who owns them', () => {
+    shifts.start(7, { userName: 'cash1', role: 'CASHIER' });
+    clock = new Date('2026-01-01T16:00:00.000Z');
+    shifts.start(8, { userName: 'cash2', role: 'CASHIER' });
+
+    expect(shifts.today(day).map((s) => [s.userName, s.userId, s.id])).toEqual([
+      ['cash1', 7, null],
+      ['cash2', 8, null],
+    ]);
+  });
+
+  it('leaves out shifts that started on another day', () => {
+    shifts.start(7, { userName: 'cash1', role: 'CASHIER' });
+
+    expect(
+      shifts.today({
+        from: '2026-01-02T00:00:00.000Z',
+        to: '2026-01-03T00:00:00.000Z',
+      }),
+    ).toEqual([]);
+  });
+
+  it('narrows by role', () => {
+    shifts.start(7, { userName: 'cash1', role: 'CASHIER' });
+    shifts.start(8, { userName: 'mgr1', role: 'MANAGER' });
+
+    expect(
+      shifts.today({ ...day, role: 'CASHIER' }).map((s) => s.userName),
+    ).toEqual(['cash1']);
+  });
+
+  it('includes finished shifts with their end time and, once known, the server id', () => {
+    shifts.start(7, { userName: 'cash1', role: 'CASHIER' });
+    clock = new Date('2026-01-01T16:00:00.000Z');
+    shifts.finish({ clientId: ID_1, writes: [] });
+    new ShiftMap(db).set(ID_1, 42);
+
+    expect(shifts.today(day)[0]).toMatchObject({
+      endTime: '2026-01-01T16:00:00.000Z',
+      id: 42,
+    });
+  });
+
+  it('names a shift started without an owner from the user remembered on this device, else by number', () => {
+    shifts.start(7);
+    shifts.start(8);
+    db.prepare(
+      "INSERT INTO credential (user_id, db_user_id, role, verifier, last_online_at) VALUES ('cash1', 7, 'CASHIER', x'00', '2026-01-01T00:00:00.000Z')",
+    ).run();
+
+    const listed = shifts.today({ ...day, role: undefined });
+    expect(listed.map((s) => s.userName)).toEqual(['cash1', 'User 8']);
+    expect(
+      shifts.today({ ...day, role: 'CASHIER' }).map((s) => s.userName),
+    ).toEqual(['cash1']);
+  });
+});
+
+describe('LocalShifts.consolidate', () => {
+  it('sums the records saved on this device for the shifts asked for', () => {
+    shifts.start(7);
+    shifts.finish({
+      clientId: ID_1,
+      writes: [
+        {
+          entity: 'credit-totals',
+          path: 'credit-totals',
+          payload: { creditTerminal: 10.5 },
+        },
+        {
+          entity: 'daily-summary',
+          path: 'daily-summary-reports',
+          payload: { totalSales: 100 },
+        },
+        { entity: 'payouts', path: 'payouts', payload: { cashOnHand: 57.75 } },
+      ],
+    });
+
+    const result = shifts.consolidate([ID_1]);
+
+    expect(result.creditTotals.creditTerminalCents).toBe(1050);
+    expect(result.dailySummary.totalSalesCents).toBe(10_000);
+    expect(result.payoutsAndCash.cashOnHandCents).toBe(5775);
+    expect(result.incompleteClientIds).toEqual([]);
+  });
+
+  it('does not count a record the server refused', () => {
+    shifts.start(7);
+    shifts.finish({
+      clientId: ID_1,
+      writes: [
+        { entity: 'payouts', path: 'payouts', payload: { cashOnHand: 57.75 } },
+      ],
+    });
+    const payouts = outbox.list().find((e) => e.entity === 'payouts');
+    outbox.markNeedsAttention(payouts?.id ?? '', 'Refused');
+
+    expect(shifts.consolidate([ID_1]).payoutsAndCash.cashOnHandCents).toBe(0);
+  });
+});

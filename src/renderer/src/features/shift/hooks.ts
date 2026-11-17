@@ -21,6 +21,12 @@ import type {
   UseStartShift,
 } from './types';
 
+// Who the signed-in user is, kept with the shift so a review list can name it when only this device knows it.
+function currentOwner(): { userName: string; role: string | null } | undefined {
+  const { user } = useAuthStore.getState();
+  return user ? { userName: user.userId, role: user.userRole } : undefined;
+}
+
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
@@ -57,6 +63,8 @@ export async function loadCurrentShift(dbUserId: number): Promise<void> {
     }
     const adopted = await adoptServerShift({
       userId: dbUserId,
+      userName: currentOwner()?.userName,
+      role: currentOwner()?.role,
       id: server.id,
       clientId: server.clientId,
       startTime: server.startTime,
@@ -101,7 +109,7 @@ export function useStartShift(): UseStartShift {
     setStarting(true);
     setError(null);
     try {
-      const shift = await startLocalShift(dbUserId);
+      const shift = await startLocalShift(dbUserId, currentOwner());
       await activateDrafts(dbUserId, shift.clientId);
       useShiftStore.getState().setCurrent({ status: 'open', shift });
     } catch (error_) {

@@ -71,4 +71,9 @@ export const MIGRATIONS: readonly string[] = [
     fetched_at TEXT NOT NULL
   ) STRICT;
   `,
+  `
+  -- Who the shift belongs to, for the review lists: this device may be the only place that knows the shift yet.
+  ALTER TABLE local_shift ADD COLUMN user_name TEXT;
+  ALTER TABLE local_shift ADD COLUMN role TEXT;
+  `,
 ];

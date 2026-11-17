@@ -16,6 +16,8 @@ export const IpcChannel = {
   CredentialsRemember: 'credentials:remember',
   CredentialsLoginOffline: 'credentials:login-offline',
   SessionRenew: 'session:renew',
+  ShiftsToday: 'shifts:today',
+  ShiftsConsolidate: 'shifts:consolidate',
   CacheGet: 'cache:get',
   CachePut: 'cache:put',
 } as const;
@@ -110,6 +112,8 @@ export interface LocalShift {
 // An open shift the server already has, e.g. one started on another device.
 export interface AdoptShiftInput {
   userId: number;
+  userName?: string;
+  role?: string | null;
   id: number;
   clientId: string | null;
   startTime: string;
@@ -131,8 +135,12 @@ export interface FinishShiftInput {
 export interface ShiftsApi {
   // The user's open shift on this device, or null.
   current: (userId: number) => Promise<LocalShift | null>;
-  // Starts a shift now, or returns the one already open. Works offline.
-  start: (userId: number) => Promise<LocalShift>;
+  // Starts a shift now, or returns the one already open. Works offline. Who it belongs to is kept for the review lists.
+  start: (userId: number, who?: ShiftOwner) => Promise<LocalShift>;
+  // The shifts this device holds that started in the given time range, for the review lists.
+  today: (query: TodayShiftsQuery) => Promise<LocalShiftWithUser[]>;
+  // Sums what the cashiers entered for these shifts, from the records saved on this device.
+  consolidate: (clientIds: string[]) => Promise<LocalConsolidation>;
   adopt: (input: AdoptShiftInput) => Promise<LocalShift>;
   // Saves the shift's records and ends it, all together or not at all. Works offline.
   finish: (input: FinishShiftInput) => Promise<LocalShift>;
@@ -180,4 +188,51 @@ export interface CachedValue {
 export interface CacheApi {
   get: (key: string) => Promise<CachedValue | null>;
   put: (key: string, value: unknown) => Promise<void>;
+}
+
+export interface ShiftOwner {
+  // The login name.
+  userName: string;
+  role: string | null;
+}
+
+export interface TodayShiftsQuery {
+  // ISO instants: the day's start (inclusive) and end (exclusive) in the device's own time.
+  from: string;
+  to: string;
+  role?: string;
+}
+
+export interface LocalShiftWithUser extends LocalShift {
+  userName: string;
+}
+
+// Integer cents, summed over shifts; the same sections the server's consolidation reports.
+export interface LocalConsolidation {
+  creditTotals: {
+    creditTerminalCents: number;
+    creditTotalCents: number;
+    debitTerminalCents: number;
+    fleetCents: number;
+    svRedemptionCents: number;
+  };
+  dailySummary: {
+    fuelSalesCents: number;
+    itemSalesCents: number;
+    gstCents: number;
+    hstCents: number;
+    pennyRoundingCents: number;
+    totalSalesCents: number;
+  };
+  payoutsAndCash: {
+    totalPosCents: number;
+    totalPayoutsCents: number;
+    lottoWinnerCents: number;
+    giftCertificatesCents: number;
+    redemptionsCents: number;
+    safedropsCents: number;
+    cashOnHandCents: number;
+  };
+  // Shifts missing at least one of their credit totals, daily summary or payouts; they count as zero.
+  incompleteClientIds: string[];
 }

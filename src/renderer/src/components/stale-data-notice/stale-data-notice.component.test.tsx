@@ -28,4 +28,18 @@ describe('StaleDataNotice (real browser)', () => {
       )
       .toBeVisible();
   });
+
+  it('says when only this device’s shifts are shown', async () => {
+    useStaleStore.setState({
+      stale: { 'this-device-only': new Date().toISOString() },
+    });
+    await render(<StaleDataNotice />);
+
+    await expect
+      .element(page.getByText(/only shifts made on this device/))
+      .toBeVisible();
+    await expect
+      .element(page.getByText(/last saved on this device/))
+      .not.toBeInTheDocument();
+  });
 });

@@ -21,7 +21,7 @@ export const TODAY_SHIFTS: ShiftWithUser[] = [
 ];
 
 export const CONSOLIDATED: ConsolidatedShifts = {
-  shiftIds: [11, 12],
+  shiftIds: ['11', '12'],
   incompleteShiftIds: [],
   creditTotals: {
     creditTerminalCents: 1000,

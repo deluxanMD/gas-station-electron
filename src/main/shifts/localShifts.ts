@@ -3,10 +3,15 @@ import type Database from 'better-sqlite3';
 import type {
   AdoptShiftInput,
   FinishShiftInput,
+  LocalConsolidation,
   LocalShift,
+  LocalShiftWithUser,
+  ShiftOwner,
+  TodayShiftsQuery,
 } from '../../shared/ipc';
 import type { Outbox } from '../outbox/outbox';
 import { SHIFT_START_ENTITY } from '../sync/constants';
+import { consolidate } from './consolidate';
 
 const SHIFT_CLOSE_ENTITY = 'shift-close';
 const SHIFT_CLOSE_PATH = 'shifts/{shiftId}/close';
@@ -17,12 +22,20 @@ interface LocalShiftRow {
   start_time: string;
   end_time: string | null;
   server_id: number | null;
+  user_name: string | null;
+  role: string | null;
 }
 
 const SELECT_SHIFT = `
-  SELECT s.client_id, s.user_id, s.start_time, s.end_time, m.server_id
+  SELECT s.client_id, s.user_id, s.start_time, s.end_time, m.server_id,
+         COALESCE(s.user_name, c.user_id) AS user_name,
+         COALESCE(s.role, c.role) AS role
   FROM local_shift s
+  LEFT JOIN credential c ON c.db_user_id = s.user_id
   LEFT JOIN shift_map m ON m.client_id = s.client_id`;
+
+// The same, narrowed by the review lists to the day and the role.
+const TODAY_FILTER = ` WHERE s.start_time >= ? AND s.start_time < ?`;
 
 function toShift(row: LocalShiftRow): LocalShift {
   return {
@@ -61,14 +74,14 @@ export class LocalShifts {
     return toShift(row);
   }
 
-  start(userId: number): LocalShift {
+  start(userId: number, who?: ShiftOwner): LocalShift {
     return this.db.transaction((): LocalShift => {
       const open = this.current(userId);
       if (open) return open;
 
       const clientId = this.newId();
       const startTime = this.now().toISOString();
-      this.insert(clientId, userId, startTime);
+      this.insert(clientId, userId, startTime, who);
       this.outbox.enqueue({
         userId,
         shiftClientId: clientId,
@@ -91,7 +104,10 @@ export class LocalShifts {
       if (open) return open;
 
       const clientId = input.clientId ?? this.newId();
-      this.insert(clientId, input.userId, input.startTime);
+      this.insert(clientId, input.userId, input.startTime, {
+        userName: input.userName ?? null,
+        role: input.role ?? null,
+      });
       this.db
         .prepare(
           `INSERT INTO shift_map (client_id, server_id) VALUES (?, ?)
@@ -153,11 +169,42 @@ export class LocalShifts {
     })();
   }
 
-  private insert(clientId: string, userId: number, startTime: string): void {
+  /** The shifts this device holds that started in the range, for the review lists. */
+  today(query: TodayShiftsQuery): LocalShiftWithUser[] {
+    const rows = this.db
+      .prepare(`${SELECT_SHIFT}${TODAY_FILTER} ORDER BY s.start_time`)
+      .all(query.from, query.to) as LocalShiftRow[];
+    return rows
+      .filter((row) => query.role === undefined || row.role === query.role)
+      .map((row) => ({
+        ...toShift(row),
+        userName: row.user_name ?? `User ${row.user_id}`,
+      }));
+  }
+
+  /** What the cashiers entered for these shifts, summed from the records saved on this device. */
+  consolidate(clientIds: readonly string[]): LocalConsolidation {
+    return consolidate(this.outbox.entriesForShifts(clientIds), clientIds);
+  }
+
+  private insert(
+    clientId: string,
+    userId: number,
+    startTime: string,
+    who?: { userName: string | null; role: string | null },
+  ): void {
     this.db
       .prepare(
-        `INSERT INTO local_shift (client_id, user_id, start_time, created_at) VALUES (?, ?, ?, ?)`,
+        `INSERT INTO local_shift (client_id, user_id, start_time, created_at, user_name, role)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(clientId, userId, startTime, this.now().toISOString());
+      .run(
+        clientId,
+        userId,
+        startTime,
+        this.now().toISOString(),
+        who?.userName ?? null,
+        who?.role ?? null,
+      );
   }
 }

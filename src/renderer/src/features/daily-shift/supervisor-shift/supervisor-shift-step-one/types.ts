@@ -1,16 +1,16 @@
 import type { FormEvent } from 'react';
-import type { ConsolidatedShifts, ShiftWithUser } from '@/features/shift/types';
+import type { ConsolidatedShifts, ReviewShift } from '@/features/shift/types';
 
 export interface ReviewShiftsProps {
   formId: string;
   onNext: () => void;
 }
 
-// Today's cashier shifts as the API reports them.
+// Today's cashier shifts: the server's, with those this device holds that it does not know yet.
 export type TodayShifts =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; shifts: ShiftWithUser[] };
+  | { status: 'ready'; shifts: ReviewShift[] };
 
 export type ReviewStatus =
   | { status: 'idle' }

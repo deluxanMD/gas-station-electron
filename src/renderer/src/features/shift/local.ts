@@ -14,8 +14,8 @@ function shiftsApi(): ShiftsApi {
 export const currentLocalShift = (userId: number): Promise<Shift | null> =>
   shiftsApi().current(userId);
 
-export const startLocalShift = (userId: number): Promise<Shift> =>
-  shiftsApi().start(userId);
+export const startLocalShift: ShiftsApi['start'] = (userId, who) =>
+  shiftsApi().start(userId, who);
 
 export const adoptServerShift: ShiftsApi['adopt'] = (input) =>
   shiftsApi().adopt(input);

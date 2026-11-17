@@ -121,6 +121,20 @@ export class Outbox extends EventEmitter {
     return counts;
   }
 
+  /** The writes of the given shifts that the server has not refused, oldest first. */
+  entriesForShifts(clientIds: readonly string[]): OutboxEntry[] {
+    if (clientIds.length === 0) return [];
+    const marks = clientIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM outbox
+         WHERE shift_client_id IN (${marks}) AND status != 'needs_attention'
+         ORDER BY created_at, rowid`,
+      )
+      .all(...clientIds) as OutboxRow[];
+    return rows.map(toEntry);
+  }
+
   /** A write that was in flight when the app stopped is retried: the API's idempotency key makes that safe. */
   recoverInterrupted(): void {
     this.db

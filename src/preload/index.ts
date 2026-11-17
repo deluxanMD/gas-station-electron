@@ -48,7 +48,11 @@ const sync: SyncApi = {
 
 const shifts: ShiftsApi = {
   current: (userId) => ipcRenderer.invoke(IpcChannel.ShiftsCurrent, userId),
-  start: (userId) => ipcRenderer.invoke(IpcChannel.ShiftsStart, userId),
+  start: (userId, who) =>
+    ipcRenderer.invoke(IpcChannel.ShiftsStart, userId, who),
+  today: (query) => ipcRenderer.invoke(IpcChannel.ShiftsToday, query),
+  consolidate: (clientIds) =>
+    ipcRenderer.invoke(IpcChannel.ShiftsConsolidate, clientIds),
   adopt: (input) => ipcRenderer.invoke(IpcChannel.ShiftsAdopt, input),
   finish: (input) => ipcRenderer.invoke(IpcChannel.ShiftsFinish, input),
 };

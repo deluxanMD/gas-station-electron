@@ -18,6 +18,20 @@ export interface ShiftWithUser extends ServerShift {
   userName: string;
 }
 
+// A shift in a review list. It can be on the server, on this device only (not sent yet), or both.
+export interface ReviewShift {
+  // Stable id for selecting it: the server id, else the device's own.
+  key: string;
+  id: number | null;
+  clientId: string | null;
+  userId: number;
+  userName: string;
+  startTime: string;
+  endTime: string | null;
+  // True when this device holds the shift's records, so totals can be summed here.
+  onDevice: boolean;
+}
+
 export type CurrentShift =
   | { status: 'loading' }
   | { status: 'error'; message: string }
@@ -70,9 +84,10 @@ export interface ConsolidatedPayoutsAndCash {
 }
 
 export interface ConsolidatedShifts {
-  shiftIds: number[];
+  // The `key` of each reviewed shift.
+  shiftIds: string[];
   // Shifts missing some cashier records; they count as zero.
-  incompleteShiftIds: number[];
+  incompleteShiftIds: string[];
   creditTotals: ConsolidatedCreditTotals;
   dailySummary: ConsolidatedDailySummary;
   payoutsAndCash: ConsolidatedPayoutsAndCash;

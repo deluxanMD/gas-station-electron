@@ -18,7 +18,10 @@ export function ReviewCashierReports({
     reviewStatus,
     consolidated,
     handleSubmit,
-  } = useReviewCashierReports({ onNext });
+  } = useReviewCashierReports({
+    onNext,
+    shifts: today.status === 'ready' ? today.shifts : [],
+  });
 
   return (
     <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -45,9 +48,9 @@ export function ReviewCashierReports({
         {today.status === 'ready'
           ? today.shifts.map((shift) => (
               <ShiftOption
-                key={shift.id}
+                key={shift.key}
                 shift={shift}
-                checked={checkedIds.includes(String(shift.id))}
+                checked={checkedIds.includes(shift.key)}
                 onToggle={toggleShift}
               />
             ))

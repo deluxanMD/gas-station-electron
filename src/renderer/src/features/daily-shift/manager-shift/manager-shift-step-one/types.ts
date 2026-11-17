@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import type { ConsolidatedShifts } from '@/features/shift/types';
+import type { ConsolidatedShifts, ReviewShift } from '@/features/shift/types';
 
 export interface ReviewCashierReportsProps {
   formId: string;
@@ -13,6 +13,8 @@ export type ReviewStatus =
 
 export interface UseReviewCashierReportsOptions {
   onNext: () => void;
+  // Today's cashier shifts being listed, so the ones ticked can be looked up.
+  shifts: ReviewShift[];
 }
 
 export interface UseReviewCashierReportsReturn {

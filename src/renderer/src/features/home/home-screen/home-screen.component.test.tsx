@@ -83,7 +83,10 @@ describe('HomeScreen shift (real browser)', () => {
       .element(page.getByRole('button', { name: 'Start shift' }))
       .not.toBeInTheDocument();
     // The shift starts on this device; the server is told later.
-    expect(window.api.shifts.start).toHaveBeenCalledWith(4);
+    expect(window.api.shifts.start).toHaveBeenCalledWith(4, {
+      userName: 'u1',
+      role: 'CASHIER',
+    });
   });
 
   it('shows why a shift could not be started and keeps the button', async () => {

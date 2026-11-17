@@ -60,6 +60,36 @@ export function installFakeDevice(
         });
       }),
       adopt: vi.fn(),
+      today: vi.fn(() => Promise.resolve([])),
+      consolidate: vi.fn(() =>
+        Promise.resolve({
+          creditTotals: {
+            creditTerminalCents: 0,
+            creditTotalCents: 0,
+            debitTerminalCents: 0,
+            fleetCents: 0,
+            svRedemptionCents: 0,
+          },
+          dailySummary: {
+            fuelSalesCents: 0,
+            itemSalesCents: 0,
+            gstCents: 0,
+            hstCents: 0,
+            pennyRoundingCents: 0,
+            totalSalesCents: 0,
+          },
+          payoutsAndCash: {
+            totalPosCents: 0,
+            totalPayoutsCents: 0,
+            lottoWinnerCents: 0,
+            giftCertificatesCents: 0,
+            redemptionsCents: 0,
+            safedropsCents: 0,
+            cashOnHandCents: 0,
+          },
+          incompleteClientIds: [],
+        }),
+      ),
       finish: vi.fn((input: FinishShiftInput) => {
         if (failure !== null) {
           const message = failure;
