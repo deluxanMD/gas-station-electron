@@ -15,10 +15,11 @@ export function apiOriginFor(
   apiBaseUrl: string | undefined,
   mode: string,
   warn: (message: string) => void = console.warn,
+  name = 'RENDERER_VITE_API_BASE_URL',
 ): string {
   if (!apiBaseUrl) {
     throw new Error(
-      'RENDERER_VITE_API_BASE_URL is not set: the app would not be allowed to reach the API.',
+      `${name} is not set: the built app would have no API address to reach. Set it in .env.production (or the environment of the build).`,
     );
   }
   let url: URL;
@@ -37,12 +38,12 @@ export function apiOriginFor(
   if (mode === 'production') {
     if (url.protocol !== 'https:') {
       throw new Error(
-        `A production build must reach the API over https, but RENDERER_VITE_API_BASE_URL is ${apiBaseUrl}.`,
+        `A production build must reach the API over https, but ${name} is ${apiBaseUrl}.`,
       );
     }
     if (STAND_IN_HOST.test(url.hostname)) {
       warn(
-        `RENDERER_VITE_API_BASE_URL is still the stand-in ${url.origin}: set the real API address before shipping.`,
+        `${name} is still the stand-in ${url.origin}: set the real API address before shipping.`,
       );
     }
   }
@@ -58,5 +59,19 @@ export function cspApiOrigin(): Plugin {
       origin = apiOriginFor(config.env.RENDERER_VITE_API_BASE_URL, config.mode);
     },
     transformIndexHtml: (html) => html.replaceAll(PLACEHOLDER, origin),
+  };
+}
+
+/**
+ * Fails the main-process build when it has no usable API address. The background sync runs there and reads the address
+ * the build was made with, so a missing one would otherwise only show up as an app that silently never syncs.
+ */
+export function requireMainApiAddress(): Plugin {
+  const name = 'MAIN_VITE_API_BASE_URL';
+  return {
+    name: 'gsp-require-main-api-address',
+    configResolved(config) {
+      apiOriginFor(config.env[name], config.mode, console.warn, name);
+    },
   };
 }

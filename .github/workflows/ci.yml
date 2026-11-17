@@ -108,6 +108,11 @@ jobs:
           sudo apt-get install -y xvfb libnss3 libgtk-3-0 libgbm1 libasound2t64
       - name: Run E2E tests (virtual display)
         run: xvfb-run --auto-servernum npm run test:e2e
+        env:
+          # .env.production is not in the repository, and a build without an API address fails on purpose. The tests
+          # never reach it (they point the sync at a stand-in server of their own), so a stand-in address will do.
+          RENDERER_VITE_API_BASE_URL: https://api.example.com/api
+          MAIN_VITE_API_BASE_URL: https://api.example.com/api
       - name: Upload Playwright artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4

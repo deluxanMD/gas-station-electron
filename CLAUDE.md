@@ -59,7 +59,7 @@ src/renderer/src/
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` where possible.
 - Never expose `ipcRenderer` or `require` wholesale. Expose one narrow function per operation.
 - Validate and type every IPC payload in the main handler; never trust renderer input.
-- No remote content in the app window; the CSP in `index.html` is strict. Its `connect-src` allows `'self'` and the origin of `RENDERER_VITE_API_BASE_URL`, filled in at build time by `build-tools/csp.ts` (never hard-code an address there). A production build fails unless that address is https, and warns while it is still the `api.example.com` stand-in, so set the real one in `.env.production` before shipping. Test builds against another address use `electron-vite build --mode development`.
+- No remote content in the app window; the CSP in `index.html` is strict. Its `connect-src` allows `'self'` and the origin of `RENDERER_VITE_API_BASE_URL`, filled in at build time by `build-tools/csp.ts` (never hard-code an address there). The main process's `MAIN_VITE_API_BASE_URL` (used by the background sync) is checked the same way, so a build with no address fails instead of producing an app that silently never syncs; CI sets both for the E2E job because `.env.production` is not in the repository. A production build fails unless that address is https, and warns while it is still the `api.example.com` stand-in, so set the real one in `.env.production` before shipping. Test builds against another address use `electron-vite build --mode development`.
 - Secrets never go in the renderer or the repo.
 
 ## TypeScript
