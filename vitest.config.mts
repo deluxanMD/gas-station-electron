@@ -27,7 +27,7 @@ export default defineConfig({
         test: {
           name: 'main',
           environment: 'node',
-          include: ['src/main/**/*.test.ts'],
+          include: ['src/main/**/*.test.ts', 'build-tools/**/*.test.ts'],
         },
       },
       {
