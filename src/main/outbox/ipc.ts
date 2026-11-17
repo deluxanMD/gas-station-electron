@@ -1,8 +1,10 @@
-import { ipcMain } from 'electron';
+import { writeFile } from 'node:fs/promises';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { IpcChannel } from '../../shared/ipc';
-import type { OutboxStatus } from '../../shared/ipc';
+import type { ExportResult, OutboxStatus } from '../../shared/ipc';
 import type { Outbox } from './outbox';
+import { serializeEntries } from './exportEntries';
 
 const enqueueSchema = z.object({
   userId: z.number().int().positive(),
@@ -30,4 +32,33 @@ export function registerOutboxIpc(outbox: Outbox): void {
     outbox.list(statusSchema.parse(status) as OutboxStatus | undefined),
   );
   ipcMain.handle(IpcChannel.OutboxCounts, () => outbox.counts());
+  ipcMain.handle(IpcChannel.OutboxRetry, (_event, id: unknown) =>
+    outbox.requeue(z.string().uuid().parse(id)),
+  );
+  ipcMain.handle(
+    IpcChannel.OutboxExport,
+    async (event, ids: unknown): Promise<ExportResult> => {
+      const wanted = z.array(z.string().uuid()).max(500).optional().parse(ids);
+      const entries = outbox
+        .list()
+        .filter((entry) =>
+          wanted
+            ? wanted.includes(entry.id)
+            : entry.status === 'needs_attention',
+        );
+      const now = new Date();
+      const window = BrowserWindow.fromWebContents(event.sender);
+      const options = {
+        defaultPath: `unsent-changes-${now.toISOString().slice(0, 10)}.json`,
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      };
+      // The person chooses where it goes; nothing is written anywhere else.
+      const choice = window
+        ? await dialog.showSaveDialog(window, options)
+        : await dialog.showSaveDialog(options);
+      if (choice.canceled || !choice.filePath) return { saved: false };
+      await writeFile(choice.filePath, serializeEntries(entries, now), 'utf8');
+      return { saved: true, path: choice.filePath };
+    },
+  );
 }

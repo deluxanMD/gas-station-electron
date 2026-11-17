@@ -27,6 +27,19 @@ describe('migrate', () => {
   });
 });
 
+// A write the server refused.
+const refused = (): string => {
+  const entry = outbox.enqueue({
+    userId: 7,
+    entity: 'payouts',
+    method: 'POST',
+    path: 'payouts',
+    payload: {},
+  });
+  outbox.markNeedsAttention(entry.id, 'Shift is already closed');
+  return entry.id;
+};
+
 describe('Outbox', () => {
   it('stores a write as pending with its payload intact', () => {
     const entry = outbox.enqueue({
@@ -101,5 +114,55 @@ describe('Outbox', () => {
         payload: {},
       }),
     ).toThrow();
+  });
+
+  describe('requeue', () => {
+    it('puts a refused write back in the queue as new, ready to send now', () => {
+      const id = refused();
+
+      expect(outbox.requeue(id)).toBe(true);
+
+      expect(outbox.get(id)).toMatchObject({
+        status: 'pending',
+        attempts: 0,
+        lastError: null,
+      });
+      expect(outbox.nextDue(new Date(), [])?.id).toBe(id);
+    });
+
+    it('asks the engine to send it', () => {
+      const id = refused();
+      let announced = 0;
+      outbox.on('enqueued', () => (announced += 1));
+
+      outbox.requeue(id);
+
+      expect(announced).toBe(1);
+    });
+
+    it('leaves a write that is not waiting for attention alone', () => {
+      const pending = outbox.enqueue({
+        userId: 7,
+        entity: 'a',
+        method: 'POST',
+        path: 'a',
+        payload: {},
+      });
+      const synced = outbox.enqueue({
+        userId: 7,
+        entity: 'b',
+        method: 'POST',
+        path: 'b',
+        payload: {},
+      });
+      outbox.markSynced(synced.id);
+
+      expect(outbox.requeue(pending.id)).toBe(false);
+      expect(outbox.requeue(synced.id)).toBe(false);
+      expect(outbox.requeue('00000000-0000-4000-8000-000000000000')).toBe(
+        false,
+      );
+      expect(outbox.get(synced.id).status).toBe('synced');
+    });
   });
 });

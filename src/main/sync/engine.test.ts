@@ -261,6 +261,45 @@ describe('SyncEngine answers', () => {
   });
 });
 
+describe('SyncEngine after a refused write is retried', () => {
+  it('sends it again and it goes through once the cause is fixed', async () => {
+    fetchFn
+      .mockResolvedValueOnce(fail(409, 'Shift is already closed'))
+      .mockResolvedValueOnce(ok());
+    engine.start();
+    const id = queue();
+    await vi.waitFor(() => expect(statusOf(id)).toBe('needs_attention'));
+
+    outbox.requeue(id);
+
+    await vi.waitFor(() => expect(statusOf(id)).toBe('synced'));
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    // The same idempotency key both times, so a retry can never duplicate a record.
+    const keys = fetchFn.mock.calls.map(
+      ([, init]) => (init as RequestInit).headers,
+    );
+    expect(keys[0]).toMatchObject({ 'Idempotency-Key': id });
+    expect(keys[1]).toMatchObject({ 'Idempotency-Key': id });
+  });
+
+  it('lets the rest of a shift follow when its refused start is retried', async () => {
+    fetchFn
+      .mockResolvedValueOnce(fail(400, 'Bad start'))
+      .mockResolvedValueOnce(ok({ id: 42 }))
+      .mockResolvedValueOnce(ok());
+    engine.start();
+    const first = start();
+    const second = record();
+    await vi.waitFor(() => expect(statusOf(first)).toBe('needs_attention'));
+    expect(statusOf(second)).toBe('pending');
+
+    outbox.requeue(first);
+
+    await vi.waitFor(() => expect(statusOf(second)).toBe('synced'));
+    expect(statusOf(first)).toBe('synced');
+  });
+});
+
 describe('SyncEngine shifts', () => {
   it('sends a shift in order and addresses the close by the server id of the started shift', async () => {
     fetchFn

@@ -16,6 +16,8 @@ const outbox: OutboxApi = {
   enqueue: (input) => ipcRenderer.invoke(IpcChannel.OutboxEnqueue, input),
   list: (status) => ipcRenderer.invoke(IpcChannel.OutboxList, status),
   counts: () => ipcRenderer.invoke(IpcChannel.OutboxCounts),
+  retry: (id) => ipcRenderer.invoke(IpcChannel.OutboxRetry, id),
+  exportEntries: (ids) => ipcRenderer.invoke(IpcChannel.OutboxExport, ids),
 };
 
 const session: SessionApi = {

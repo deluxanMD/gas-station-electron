@@ -38,6 +38,8 @@ export const SYNC_STATUS_STYLES: SyncStatusStyles = {
     icon: AlertTriangle,
     className: 'bg-destructive text-destructive-foreground',
     label: (_waiting, needsAttention) =>
-      `${plural(needsAttention, 'change')} need attention`,
+      needsAttention === 1
+        ? '1 change needs attention'
+        : `${needsAttention} changes need attention`,
   },
 };

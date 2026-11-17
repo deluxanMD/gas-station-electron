@@ -32,6 +32,7 @@ export interface Received {
 export class StubApi {
   readonly received: Received[] = [];
   private server: Server | null = null;
+  private refusal: { status: number; message: string } | null = null;
 
   constructor(readonly port: number) {}
 
@@ -48,6 +49,15 @@ export class StubApi {
     await new Promise<void>((resolve) =>
       this.server?.listen(this.port, '127.0.0.1', resolve),
     );
+  }
+
+  /** Makes the stand-in answer every write with an error, like a server that will not accept it. */
+  refuse(status: number, message: string): void {
+    this.refusal = { status, message };
+  }
+
+  accept(): void {
+    this.refusal = null;
   }
 
   async down(): Promise<void> {
@@ -71,6 +81,13 @@ export class StubApi {
 
     if (url.endsWith('/health/live')) {
       res.end(JSON.stringify({ status: 'alive' }));
+      return;
+    }
+    if (this.refusal) {
+      res.statusCode = this.refusal.status;
+      res.end(
+        JSON.stringify({ status: 'error', message: this.refusal.message }),
+      );
       return;
     }
     this.received.push({

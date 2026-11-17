@@ -3,6 +3,8 @@ export const IpcChannel = {
   OutboxEnqueue: 'outbox:enqueue',
   OutboxList: 'outbox:list',
   OutboxCounts: 'outbox:counts',
+  OutboxRetry: 'outbox:retry',
+  OutboxExport: 'outbox:export',
   SessionSet: 'session:set',
   SessionRelease: 'session:release',
   SyncGetState: 'sync:get-state',
@@ -61,7 +63,13 @@ export interface OutboxApi {
   enqueue: (input: EnqueueOutboxInput) => Promise<OutboxEntry>;
   list: (status?: OutboxStatus) => Promise<OutboxEntry[]>;
   counts: () => Promise<OutboxCounts>;
+  // Puts a write the server refused back in the queue to be sent again. False when it is not waiting for attention.
+  retry: (id: string) => Promise<boolean>;
+  // Lets the person save writes (by default every one that needs attention) to a file they choose.
+  exportEntries: (ids?: string[]) => Promise<ExportResult>;
 }
+
+export type ExportResult = { saved: true; path: string } | { saved: false };
 
 // What the sync engine needs to act for a user while the renderer may be closed or signed out.
 export interface SessionInput {

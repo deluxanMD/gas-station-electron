@@ -135,6 +135,23 @@ export class Outbox extends EventEmitter {
     return rows.map(toEntry);
   }
 
+  /**
+   * Sends a write the server refused again, for instance after the cause was fixed on the server. Only a write that
+   * needs attention can be put back; a shift's other writes that were held behind it follow.
+   */
+  requeue(id: string): boolean {
+    const result = this.db
+      .prepare(
+        `UPDATE outbox SET status = 'pending', attempts = 0, last_error = NULL, next_attempt_at = ?, updated_at = ?
+         WHERE id = ? AND status = 'needs_attention'`,
+      )
+      .run(this.now().toISOString(), this.now().toISOString(), id);
+    if (result.changes === 0) return false;
+    this.emit('changed');
+    this.emit('enqueued');
+    return true;
+  }
+
   /** A write that was in flight when the app stopped is retried: the API's idempotency key makes that safe. */
   recoverInterrupted(): void {
     this.db

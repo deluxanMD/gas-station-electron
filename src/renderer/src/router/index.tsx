@@ -5,6 +5,7 @@ import { DailyShiftRoute } from './DailyShiftRoute';
 import { HomeRoute } from './HomeRoute';
 import { LoginRoute } from './LoginRoute';
 import { RequireAuth } from './require-auth';
+import { SyncIssuesRoute } from './SyncIssuesRoute';
 import { RequirePermission } from './require-permission';
 import { ROUTES } from './constants';
 
@@ -18,6 +19,7 @@ export function AppRouter(): JSX.Element {
           <Route path={ROUTES.login} element={<LoginRoute />} />
           <Route element={<RequireAuth />}>
             <Route path={ROUTES.home} element={<HomeRoute />} />
+            <Route path={ROUTES.syncIssues} element={<SyncIssuesRoute />} />
             <Route
               element={<RequirePermission module="daily-shift" action="view" />}
             >

@@ -32,6 +32,13 @@ export function installFakeDevice(
   let startFailure: string | null = null;
 
   window.api = {
+    outbox: {
+      list: vi.fn(() => Promise.resolve([])),
+      retry: vi.fn(() => Promise.resolve(true)),
+      exportEntries: vi.fn(() => Promise.resolve({ saved: false })),
+      counts: vi.fn(),
+      enqueue: vi.fn(),
+    },
     cache: {
       get: vi.fn(() => Promise.resolve(null)),
       put: vi.fn(() => Promise.resolve()),
