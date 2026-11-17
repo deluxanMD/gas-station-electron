@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { describeSync } from '@/features/sync/status';
 import { useSyncStore } from '@/features/sync/sync-store';
 import { cn } from '@/lib/utils';
@@ -9,11 +10,19 @@ import { SYNC_STATUS_STYLES } from './constants';
 // Shows whether what was entered on this device has reached the server. Hidden outside the desktop app.
 export function SyncStatus(): JSX.Element | null {
   const state = useSyncStore((s) => s.state);
+  const signedIn = useAuthStore((s) => s.user !== null);
   const navigate = useNavigate();
   if (!state) return null;
 
   const view = describeSync(state);
   const { icon: Icon, className, label } = SYNC_STATUS_STYLES[view.kind];
+  const text = label(view.waiting, view.needsAttention);
+  // What is waiting can be listed on the sync screen; a signed-out person has no screen to go to.
+  const listsWaiting =
+    signedIn &&
+    view.waiting > 0 &&
+    view.kind !== 'synced' &&
+    view.kind !== 'attention';
   return (
     <div
       role="status"
@@ -26,7 +35,17 @@ export function SyncStatus(): JSX.Element | null {
         aria-hidden
         className={cn('size-4', view.kind === 'syncing' && 'animate-spin')}
       />
-      {label(view.waiting, view.needsAttention)}
+      {listsWaiting ? (
+        <button
+          type="button"
+          className="underline-offset-2 hover:underline"
+          onClick={() => void navigate(ROUTES.syncIssues)}
+        >
+          {text}
+        </button>
+      ) : (
+        text
+      )}
       {view.kind === 'attention' ? (
         <button
           type="button"

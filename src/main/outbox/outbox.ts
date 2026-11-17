@@ -94,19 +94,16 @@ export class Outbox extends EventEmitter {
     return toEntry(row);
   }
 
-  /** Oldest first, so a shift's writes keep the order they were made in. */
-  list(status?: OutboxStatus): OutboxEntry[] {
-    const rows = (
-      status
-        ? this.db
-            .prepare(
-              'SELECT * FROM outbox WHERE status = ? ORDER BY created_at, rowid',
-            )
-            .all(status)
-        : this.db
-            .prepare('SELECT * FROM outbox ORDER BY created_at, rowid')
-            .all()
-    ) as OutboxRow[];
+  /** Oldest first, so a shift's writes keep the order they were made in. Without a status, every write. */
+  list(status?: OutboxStatus | readonly OutboxStatus[]): OutboxEntry[] {
+    const statuses = status === undefined ? [] : [status].flat();
+    const where =
+      statuses.length > 0
+        ? `WHERE status IN (${statuses.map(() => '?').join(', ')})`
+        : '';
+    const rows = this.db
+      .prepare(`SELECT * FROM outbox ${where} ORDER BY created_at, rowid`)
+      .all(...statuses) as OutboxRow[];
     return rows.map(toEntry);
   }
 

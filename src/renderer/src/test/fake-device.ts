@@ -10,6 +10,9 @@ const shift = (clientId: string): LocalShift => ({
   endTime: '2026-11-09T22:00:00.000Z',
 });
 
+// Stops listening; the fake never sends anything to listen to.
+const noop = (): void => undefined;
+
 export interface FakeDevice {
   // Every shift that was finished on the device, in order.
   finished: FinishShiftInput[];
@@ -38,6 +41,11 @@ export function installFakeDevice(
       exportEntries: vi.fn(() => Promise.resolve({ saved: false })),
       counts: vi.fn(),
       enqueue: vi.fn(),
+    },
+    sync: {
+      getState: vi.fn(),
+      syncNow: vi.fn(() => Promise.resolve()),
+      onState: vi.fn(() => noop),
     },
     cache: {
       get: vi.fn(() => Promise.resolve(null)),

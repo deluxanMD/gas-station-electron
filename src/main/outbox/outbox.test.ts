@@ -85,6 +85,38 @@ describe('Outbox', () => {
     expect(outbox.list('pending').map((e) => e.id)).toEqual([second.id]);
   });
 
+  it('lists the writes of several statuses together, oldest first', () => {
+    const a = outbox.enqueue({
+      userId: 7,
+      entity: 'a',
+      method: 'POST',
+      path: 'a',
+      payload: 1,
+    });
+    const b = outbox.enqueue({
+      userId: 7,
+      entity: 'b',
+      method: 'POST',
+      path: 'b',
+      payload: 2,
+    });
+    const c = outbox.enqueue({
+      userId: 7,
+      entity: 'c',
+      method: 'POST',
+      path: 'c',
+      payload: 3,
+    });
+    outbox.markSending(b.id);
+    outbox.markSynced(c.id);
+
+    expect(outbox.list(['pending', 'sending']).map((e) => e.id)).toEqual([
+      a.id,
+      b.id,
+    ]);
+    expect(outbox.list([]).map((e) => e.id)).toEqual([a.id, b.id, c.id]);
+  });
+
   it('counts every status, including empty ones', () => {
     outbox.enqueue({
       userId: 7,

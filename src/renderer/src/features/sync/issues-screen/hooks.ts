@@ -1,13 +1,33 @@
 import { useEffect, useState } from 'react';
 import { useSyncStore } from '@/features/sync/sync-store';
+import { describeWaiting } from '@/features/sync/waiting';
+import type { WaitingItem } from '@/features/sync/waiting';
 import type { SyncIssues, UseSyncIssuesReturn } from './types';
+
+// Asks the sync to run now instead of at its next turn.
+function trySendingNow(): void {
+  void window.api?.sync.syncNow();
+}
 
 const messageOf = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
 
 // The changes the server refused, read again whenever the count of them changes.
 export function useSyncIssues(): UseSyncIssuesReturn {
-  const needsAttention = useSyncStore((s) => s.state?.counts.needs_attention);
+  const sync = useSyncStore((s) => s.state);
+  const needsAttention = sync?.counts.needs_attention;
+  // Anything that moves a change between the lists or changes why it waits: read them again.
+  const waitingKey = sync
+    ? [
+        sync.counts.pending,
+        sync.counts.sending,
+        sync.counts.failed,
+        sync.counts.synced,
+        sync.connectivity,
+        sync.signInRequiredUserIds.join(','),
+      ].join('|')
+    : 'none';
+  const [waiting, setWaiting] = useState<WaitingItem[] | null>(null);
   const [issues, setIssues] = useState<SyncIssues>({ status: 'loading' });
   const [retrying, setRetrying] = useState<ReadonlySet<string>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
@@ -33,6 +53,29 @@ export function useSyncIssues(): UseSyncIssuesReturn {
       cancelled = true;
     };
   }, [needsAttention]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      const { state } = useSyncStore.getState();
+      if (!state) return;
+      try {
+        const entries = await (window.api?.outbox.list([
+          'pending',
+          'sending',
+          'failed',
+        ]) ?? Promise.resolve([]));
+        if (!cancelled) setWaiting(describeWaiting(entries, state, new Date()));
+      } catch {
+        // The list of what is waiting is a convenience; the pill still counts it.
+        if (!cancelled) setWaiting(null);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [waitingKey]);
 
   const retry = (id: string): void => {
     setNotice(null);
@@ -66,5 +109,13 @@ export function useSyncIssues(): UseSyncIssuesReturn {
     void run();
   };
 
-  return { issues, retrying, retry, saveToFile, notice };
+  return {
+    issues,
+    waiting,
+    trySendingNow,
+    retrying,
+    retry,
+    saveToFile,
+    notice,
+  };
 }

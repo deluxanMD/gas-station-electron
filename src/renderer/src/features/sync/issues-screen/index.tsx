@@ -1,27 +1,37 @@
 import type { JSX } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/utils';
-import { ENTITY_LABELS, SHIFT_START_ENTITY } from './constants';
+import { ENTITY_LABELS, reasonText, SHIFT_START_ENTITY } from './constants';
 import { useSyncIssues } from './hooks';
 import type { SyncIssuesScreenProps } from './types';
 
-// The changes made on this device that the server refused. Each can be sent again (once whatever the server
-// objected to is put right) or saved to a file, so nothing that was entered is ever out of reach.
+// What has been saved on this device but not yet accepted by the server: the changes still waiting to be sent, and the
+// ones the server refused. A refused change can be sent again (once whatever the server objected to is put right) or
+// saved to a file, so nothing that was entered is ever out of reach.
 export function SyncIssuesScreen({
   onExit,
 }: SyncIssuesScreenProps): JSX.Element {
-  const { issues, retrying, retry, saveToFile, notice } = useSyncIssues();
+  const {
+    issues,
+    waiting,
+    trySendingNow,
+    retrying,
+    retry,
+    saveToFile,
+    notice,
+  } = useSyncIssues();
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <section className="flex items-center justify-between rounded-xl bg-sidebar px-8 py-6 text-sidebar-foreground">
-        <h1 className="text-2xl font-light">Changes that need attention</h1>
+        <h1 className="text-2xl font-light">Sync status</h1>
         <Button variant="secondary" onClick={onExit}>
           Back to home
         </Button>
       </section>
 
       <section className="space-y-4 rounded-xl bg-card p-8 shadow-sm">
+        <h2 className="text-xl font-light">Need attention</h2>
         <p className="max-w-2xl text-sm text-muted-foreground">
           These changes were saved on this device, but the server did not accept
           them. They are kept safe here. Once the problem is put right, send
@@ -85,6 +95,44 @@ export function SyncIssuesScreen({
           <p role="note" className="text-sm text-muted-foreground">
             {notice}
           </p>
+        ) : null}
+      </section>
+
+      <section className="space-y-4 rounded-xl bg-card p-8 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-light">Waiting to be sent</h2>
+          {waiting && waiting.length > 0 ? (
+            <Button variant="outline" onClick={trySendingNow}>
+              Try now
+            </Button>
+          ) : null}
+        </div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          These changes are saved on this device and will be sent to the server
+          by themselves, in the order they were made.
+        </p>
+
+        {waiting === null ? (
+          <p className="text-muted-foreground">Loading…</p>
+        ) : null}
+        {waiting?.length === 0 ? <p>Nothing is waiting to be sent.</p> : null}
+        {waiting && waiting.length > 0 ? (
+          <ul className="space-y-3">
+            {waiting.map(({ entry, reason }) => (
+              <li
+                key={entry.id}
+                className="space-y-1 rounded-md border border-border px-4 py-3"
+              >
+                <p className="font-medium">
+                  {ENTITY_LABELS[entry.entity] ?? entry.entity}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Made {formatDateTime(entry.createdAt)}
+                </p>
+                <p className="text-sm">{reasonText(reason)}</p>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </section>
     </div>

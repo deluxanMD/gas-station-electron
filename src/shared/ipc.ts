@@ -61,7 +61,8 @@ export type OutboxCounts = Record<OutboxStatus, number>;
 
 export interface OutboxApi {
   enqueue: (input: EnqueueOutboxInput) => Promise<OutboxEntry>;
-  list: (status?: OutboxStatus) => Promise<OutboxEntry[]>;
+  // One status, several, or (with none given) every write, oldest first.
+  list: (status?: OutboxStatus | OutboxStatus[]) => Promise<OutboxEntry[]>;
   counts: () => Promise<OutboxCounts>;
   // Puts a write the server refused back in the queue to be sent again. False when it is not waiting for attention.
   retry: (id: string) => Promise<boolean>;

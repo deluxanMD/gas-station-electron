@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { z } from 'zod';
 import { IpcChannel } from '../../shared/ipc';
-import type { ExportResult, OutboxStatus } from '../../shared/ipc';
+import type { ExportResult } from '../../shared/ipc';
 import type { Outbox } from './outbox';
 import { serializeEntries } from './exportEntries';
 
@@ -19,9 +19,14 @@ const enqueueSchema = z.object({
   payload: z.json(),
 });
 
-const statusSchema = z
-  .enum(['pending', 'sending', 'synced', 'failed', 'needs_attention'])
-  .optional();
+const oneStatus = z.enum([
+  'pending',
+  'sending',
+  'synced',
+  'failed',
+  'needs_attention',
+]);
+const statusSchema = z.union([oneStatus, z.array(oneStatus).max(5)]).optional();
 
 // Every payload is validated here: the renderer is not trusted.
 export function registerOutboxIpc(outbox: Outbox): void {
@@ -29,7 +34,7 @@ export function registerOutboxIpc(outbox: Outbox): void {
     outbox.enqueue(enqueueSchema.parse(input)),
   );
   ipcMain.handle(IpcChannel.OutboxList, (_event, status: unknown) =>
-    outbox.list(statusSchema.parse(status) as OutboxStatus | undefined),
+    outbox.list(statusSchema.parse(status)),
   );
   ipcMain.handle(IpcChannel.OutboxCounts, () => outbox.counts());
   ipcMain.handle(IpcChannel.OutboxRetry, (_event, id: unknown) =>

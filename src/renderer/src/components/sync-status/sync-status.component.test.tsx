@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import type { SyncState } from '@/lib/ipc';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { useSyncStore } from '@/features/sync/sync-store';
 import { SyncStatus } from '.';
 
@@ -21,6 +22,17 @@ const state = (counts: Partial<SyncState['counts']>): SyncState => ({
   lastSyncedAt: null,
 });
 
+const part = (value: object): string => btoa(JSON.stringify(value));
+
+const signIn = (): void => {
+  useAuthStore
+    .getState()
+    .signIn(
+      `${part({ alg: 'HS256' })}.${part({ sub: 'u1', role: 'CASHIER' })}.sig`,
+      4,
+    );
+};
+
 async function renderPill(): Promise<void> {
   await render(
     <MemoryRouter>
@@ -36,6 +48,8 @@ async function renderPill(): Promise<void> {
 describe('SyncStatus (real browser)', () => {
   afterEach(() => {
     useSyncStore.setState({ state: null });
+    useAuthStore.getState().signOut();
+    localStorage.clear();
   });
 
   it('shows nothing outside the desktop app', async () => {
@@ -73,5 +87,58 @@ describe('SyncStatus (real browser)', () => {
     await page.getByRole('button', { name: 'Review' }).click();
 
     await expect.element(page.getByText('the issues page')).toBeVisible();
+  });
+
+  describe('changes waiting to be sent', () => {
+    it('opens the list of what is waiting from the pill', async () => {
+      signIn();
+      useSyncStore.setState({
+        state: { ...state({ pending: 3 }), connectivity: 'offline' },
+      });
+      await renderPill();
+
+      await page
+        .getByRole('button', { name: 'Offline: 3 changes waiting to sync' })
+        .click();
+
+      await expect.element(page.getByText('the issues page')).toBeVisible();
+    });
+
+    it('does the same while syncing and when a sign-in is needed', async () => {
+      signIn();
+      useSyncStore.setState({
+        state: { ...state({ pending: 2 }), signInRequiredUserIds: [4] },
+      });
+      await renderPill();
+
+      await expect
+        .element(
+          page.getByRole('button', { name: 'Sign in to sync 2 changes' }),
+        )
+        .toBeVisible();
+    });
+
+    it('is plain text for someone who is not signed in, who has no screen to go to', async () => {
+      useSyncStore.setState({
+        state: { ...state({ pending: 3 }), connectivity: 'offline' },
+      });
+      await renderPill();
+
+      await expect.element(page.getByRole('status')).toBeVisible();
+      await expect.element(page.getByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('is plain text when nothing is waiting', async () => {
+      signIn();
+      useSyncStore.setState({
+        state: { ...state({}), connectivity: 'offline' },
+      });
+      await renderPill();
+
+      await expect
+        .element(page.getByText('Offline: changes are saved on this device'))
+        .toBeVisible();
+      await expect.element(page.getByRole('button')).not.toBeInTheDocument();
+    });
   });
 });
